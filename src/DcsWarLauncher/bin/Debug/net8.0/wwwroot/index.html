@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DCS Persistent War Launcher</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="topbar">
+      <div>
+        <p class="eyebrow">DCS Operations</p>
+        <h1>Persistent War Launcher</h1>
+      </div>
+      <div class="status-pill" id="serverPill">Verbinde...</div>
+    </section>
+
+    <section class="grid">
+      <div class="panel control-panel">
+        <h2>Remote Starter</h2>
+        <label>
+          Host Token
+          <input id="token" type="password" placeholder="Bearer token">
+        </label>
+        <label>
+          Mission
+          <input id="missionPath" type="text" placeholder="Leer lassen fuer Default-Mission">
+        </label>
+        <div class="actions">
+          <button id="startBtn">Start</button>
+          <button id="stopBtn" class="secondary">Stop</button>
+        </div>
+        <p id="actionMessage" class="message"></p>
+      </div>
+
+      <div class="panel scheduler-panel">
+        <h2>24/7 Automation</h2>
+        <div class="scheduler-grid">
+          <div><span>Status</span><strong id="schedulerEnabled">-</strong></div>
+          <div><span>Poll</span><strong id="schedulerPoll">-</strong></div>
+          <div><span>Letzter Check</span><strong id="schedulerChecked">-</strong></div>
+          <div><span>Letzter Run</span><strong id="schedulerRun">-</strong></div>
+        </div>
+        <p id="schedulerMessage" class="message">-</p>
+      </div>
+
+      <div class="panel">
+        <h2>Kampagne</h2>
+        <div class="war-meta">
+          <div><span>Theater</span><strong id="theater">-</strong></div>
+          <div><span>Turn</span><strong id="turn">-</strong></div>
+          <div><span>Phase</span><strong id="phase">-</strong></div>
+          <div><span>Dauer</span><strong id="turnDuration">-</strong></div>
+          <div><span>Ende</span><strong id="turnEnds">-</strong></div>
+          <div><span>Restzeit</span><strong id="turnRemaining">-</strong></div>
+        </div>
+        <div class="supply">
+          <label>Blue Supply <input id="blueSupply" type="number" min="0" max="999"></label>
+          <label>Red Supply <input id="redSupply" type="number" min="0" max="999"></label>
+        </div>
+        <button id="saveStateBtn" class="wide">State speichern</button>
+      </div>
+    </section>
+
+    <section class="panel turn-panel">
+      <div class="panel-heading">
+        <h2>6h Turn Auswertung</h2>
+        <button id="advanceTurnBtn">Turn abschliessen</button>
+      </div>
+      <div class="battle-report">
+        <label>Blue Erfolg <input id="blueSuccess" type="number" min="-25" max="25" value="10"></label>
+        <label>Red Erfolg <input id="redSuccess" type="number" min="-25" max="25" value="8"></label>
+        <label>Blue Verluste <input id="blueLosses" type="number" min="0" max="50" value="4"></label>
+        <label>Red Verluste <input id="redLosses" type="number" min="0" max="50" value="6"></label>
+        <label>Luftueberlegenheit <input id="airSuperiority" type="number" min="-25" max="25" value="3"></label>
+      </div>
+    </section>
+
+    <section class="panel map-panel">
+      <div class="panel-heading">
+        <h2>Campaign Map</h2>
+        <div class="map-legend">
+          <span class="blue-dot"></span> Blue
+          <span class="red-dot"></span> Red
+          <span class="gold-dot"></span> Contested
+        </div>
+      </div>
+      <div id="frontlineMap" class="frontline-map"></div>
+    </section>
+
+    <section class="ops-grid">
+      <div class="panel ai-panel">
+        <div class="panel-heading">
+          <h2>AI Planung</h2>
+        </div>
+        <div id="aiPlan" class="ai-plan"></div>
+      </div>
+
+      <div class="panel packages-panel">
+        <div class="panel-heading">
+          <h2>Packages</h2>
+        </div>
+        <div id="missionPackages" class="mission-packages"></div>
+      </div>
+    </section>
+
+    <section class="ops-grid">
+      <div class="panel objectives-panel">
+        <div class="panel-heading">
+          <h2>Objectives</h2>
+          <button id="refreshBtn" class="secondary">Refresh</button>
+        </div>
+        <div id="objectives" class="objectives"></div>
+      </div>
+
+      <div class="panel squadrons-panel">
+        <div class="panel-heading">
+          <h2>Squadrons</h2>
+        </div>
+        <div id="squadrons" class="squadrons"></div>
+      </div>
+    </section>
+
+    <section class="ops-grid">
+      <div class="panel ground-panel">
+        <div class="panel-heading">
+          <h2>Ground War</h2>
+        </div>
+        <div id="groundUnits" class="ground-units"></div>
+      </div>
+
+      <div class="panel depots-panel">
+        <div class="panel-heading">
+          <h2>Supply Depots</h2>
+        </div>
+        <div id="supplyDepots" class="supply-depots"></div>
+      </div>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

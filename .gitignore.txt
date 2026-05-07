@@ -1,0 +1,13 @@
+.env
+*.env
+node_modules/
+dist/
+build/
+.next/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+config.local.json
+settings.local.json

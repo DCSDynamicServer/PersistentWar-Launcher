@@ -1,0 +1,66 @@
+{
+  "theater": "Caucasus",
+  "turn": 1,
+  "phase": "Planning",
+  "turnDurationHours": 6,
+  "currentTurnStartedUtc": "2026-05-06T20:30:00+00:00",
+  "currentTurnEndsUtc": "2026-05-07T02:30:00+00:00",
+  "blueSupply": 100,
+  "redSupply": 100,
+  "objectives": [
+    {
+      "name": "Gudauta",
+      "owner": "blue",
+      "strength": 65
+    },
+    {
+      "name": "Sukhumi",
+      "owner": "contested",
+      "strength": 48
+    },
+    {
+      "name": "Senaki",
+      "owner": "red",
+      "strength": 35
+    },
+    {
+      "name": "Kutaisi",
+      "owner": "red",
+      "strength": 25
+    }
+  ],
+  "frontlines": [
+    {
+      "name": "Gudauta-Sukhumi",
+      "startX": 20,
+      "startY": 42,
+      "endX": 45,
+      "endY": 48,
+      "momentum": "static"
+    },
+    {
+      "name": "Sukhumi-Senaki",
+      "startX": 45,
+      "startY": 52,
+      "endX": 68,
+      "endY": 62,
+      "momentum": "red-advancing"
+    }
+  ],
+  "aiPlan": [
+    {
+      "coalition": "blue",
+      "task": "Build pressure on contested airfields",
+      "target": "Sukhumi",
+      "confidence": 62
+    },
+    {
+      "coalition": "red",
+      "task": "Interdict blue supply routes",
+      "target": "Senaki",
+      "confidence": 58
+    }
+  ],
+  "lastBattleReport": null,
+  "updatedUtc": "2026-05-06T20:30:00+00:00"
+}

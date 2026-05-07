@@ -1,0 +1,256 @@
+{
+  "theater": "Caucasus",
+  "turn": 2,
+  "phase": "Planning",
+  "turnDurationHours": 6,
+  "currentTurnStartedUtc": "2026-05-07T16:09:51.1440656+00:00",
+  "currentTurnEndsUtc": "2026-05-07T22:09:51.1440656+00:00",
+  "blueSupply": 100,
+  "redSupply": 92,
+  "objectives": [
+    {
+      "name": "Gudauta",
+      "owner": "blue",
+      "strength": 94
+    },
+    {
+      "name": "Sukhumi",
+      "owner": "contested",
+      "strength": 66
+    },
+    {
+      "name": "Senaki",
+      "owner": "contested",
+      "strength": 42
+    },
+    {
+      "name": "Kutaisi",
+      "owner": "contested",
+      "strength": 41
+    }
+  ],
+  "airbases": [
+    {
+      "name": "Gudauta",
+      "owner": "blue",
+      "runwayHealth": 84,
+      "fuel": 78,
+      "x": 18,
+      "y": 20,
+      "status": "operational"
+    },
+    {
+      "name": "Sukhumi",
+      "owner": "contested",
+      "runwayHealth": 48,
+      "fuel": 43,
+      "x": 38,
+      "y": 42,
+      "status": "damaged"
+    },
+    {
+      "name": "Senaki",
+      "owner": "red",
+      "runwayHealth": 58,
+      "fuel": 65,
+      "x": 60,
+      "y": 58,
+      "status": "operational"
+    },
+    {
+      "name": "Kutaisi",
+      "owner": "red",
+      "runwayHealth": 91,
+      "fuel": 83,
+      "x": 78,
+      "y": 70,
+      "status": "operational"
+    }
+  ],
+  "squadrons": [
+    {
+      "name": "11th Fighter Squadron",
+      "coalition": "blue",
+      "aircraft": "F-16C",
+      "homeBase": "Gudauta",
+      "aircraftTotal": 14,
+      "aircraftReady": 10,
+      "pilotReadiness": 76
+    },
+    {
+      "name": "336th Strike Squadron",
+      "coalition": "blue",
+      "aircraft": "F/A-18C",
+      "homeBase": "Gudauta",
+      "aircraftTotal": 12,
+      "aircraftReady": 8,
+      "pilotReadiness": 68
+    },
+    {
+      "name": "159th Guards Fighter",
+      "coalition": "red",
+      "aircraft": "Su-27",
+      "homeBase": "Kutaisi",
+      "aircraftTotal": 16,
+      "aircraftReady": 12,
+      "pilotReadiness": 67
+    },
+    {
+      "name": "368th Attack Regiment",
+      "coalition": "red",
+      "aircraft": "Su-25T",
+      "homeBase": "Senaki",
+      "aircraftTotal": 14,
+      "aircraftReady": 8,
+      "pilotReadiness": 59
+    }
+  ],
+  "missionPackages": [
+    {
+      "id": "BLUE-1609-1",
+      "coalition": "blue",
+      "task": "OCA",
+      "target": "Senaki",
+      "status": "Planning",
+      "aircraftCount": 4,
+      "squadron": "11th Fighter Squadron"
+    },
+    {
+      "id": "RED-1609-2",
+      "coalition": "red",
+      "task": "CAP",
+      "target": "Senaki",
+      "status": "Planning",
+      "aircraftCount": 4,
+      "squadron": "159th Guards Fighter"
+    }
+  ],
+  "groundUnits": [
+    {
+      "name": "1st Blue Armored",
+      "coalition": "blue",
+      "type": "armor",
+      "location": "Sukhumi",
+      "strength": 78,
+      "supply": 65,
+      "readiness": 56,
+      "posture": "attacking"
+    },
+    {
+      "name": "2nd Blue Mechanized",
+      "coalition": "blue",
+      "type": "mechanized",
+      "location": "Gudauta",
+      "strength": 86,
+      "supply": 83,
+      "readiness": 64,
+      "posture": "reserve"
+    },
+    {
+      "name": "31st Red Guards",
+      "coalition": "red",
+      "type": "armor",
+      "location": "Senaki",
+      "strength": 70,
+      "supply": 73,
+      "readiness": 59,
+      "posture": "defending"
+    },
+    {
+      "name": "45th Red Motor Rifle",
+      "coalition": "red",
+      "type": "mechanized",
+      "location": "Sukhumi",
+      "strength": 65,
+      "supply": 62,
+      "readiness": 50,
+      "posture": "attacking"
+    }
+  ],
+  "supplyDepots": [
+    {
+      "name": "Gudauta Depot",
+      "coalition": "blue",
+      "location": "Gudauta",
+      "stores": 85,
+      "x": 18,
+      "y": 28,
+      "status": "active"
+    },
+    {
+      "name": "Sukhumi Forward Depot",
+      "coalition": "blue",
+      "location": "Sukhumi",
+      "stores": 47,
+      "x": 36,
+      "y": 48,
+      "status": "active"
+    },
+    {
+      "name": "Senaki Depot",
+      "coalition": "red",
+      "location": "Senaki",
+      "stores": 76,
+      "x": 61,
+      "y": 64,
+      "status": "active"
+    },
+    {
+      "name": "Kutaisi Depot",
+      "coalition": "red",
+      "location": "Kutaisi",
+      "stores": 92,
+      "x": 79,
+      "y": 77,
+      "status": "active"
+    }
+  ],
+  "frontlines": [
+    {
+      "name": "Gudauta-Sukhumi",
+      "startX": 20,
+      "startY": 23,
+      "endX": 42,
+      "endY": 17,
+      "momentum": "blue-advancing"
+    },
+    {
+      "name": "Sukhumi-Senaki",
+      "startX": 45,
+      "startY": 43,
+      "endX": 62,
+      "endY": 49,
+      "momentum": "static"
+    },
+    {
+      "name": "Senaki-Kutaisi",
+      "startX": 70,
+      "startY": 59,
+      "endX": 82,
+      "endY": 59,
+      "momentum": "red-advancing"
+    }
+  ],
+  "aiPlan": [
+    {
+      "coalition": "blue",
+      "task": "Exploit breakthrough",
+      "target": "Senaki",
+      "confidence": 73
+    },
+    {
+      "coalition": "red",
+      "task": "Repair runway and protect logistics",
+      "target": "Senaki",
+      "confidence": 37
+    }
+  ],
+  "lastBattleReport": {
+    "blueMissionSuccess": 12,
+    "redMissionSuccess": 7,
+    "blueLosses": 3,
+    "redLosses": 8,
+    "airSuperiority": 4
+  },
+  "updatedUtc": "2026-05-07T16:09:51.1440656+00:00"
+}
