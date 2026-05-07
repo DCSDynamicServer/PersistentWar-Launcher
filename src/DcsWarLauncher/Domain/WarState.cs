@@ -15,6 +15,7 @@ public sealed record WarState(
     List<MissionPackageState> MissionPackages,
     List<GroundUnitState> GroundUnits,
     List<SupplyDepotState> SupplyDepots,
+    List<FactoryState> Factories,
     List<FrontlineSegment> Frontlines,
     List<AiOrder> AiPlan,
     BattleReport? LastBattleReport,
@@ -65,6 +66,13 @@ public sealed record WarState(
             new("Senaki Depot", "red", "Senaki", 76, 61, 64, "active"),
             new("Kutaisi Depot", "red", "Kutaisi", 92, 79, 77, "active")
         };
+        var factories = new List<FactoryState>
+        {
+            new("Blue Aircraft Works", "blue", "Gudauta", "aircraft", 70, 3, "active"),
+            new("Blue Army Depot", "blue", "Gudauta", "ground", 62, 5, "active"),
+            new("Red Aviation Plant", "red", "Kutaisi", "aircraft", 75, 3, "active"),
+            new("Red Vehicle Plant", "red", "Kutaisi", "ground", 68, 5, "active")
+        };
 
         return new WarState(
             "Caucasus",
@@ -81,6 +89,7 @@ public sealed record WarState(
             packages,
             groundUnits,
             supplyDepots,
+            factories,
             [
                 new FrontlineSegment("Gudauta-Sukhumi", 22, 42, 45, 48, "static"),
                 new FrontlineSegment("Sukhumi-Senaki", 47, 52, 68, 62, "red-advancing")
@@ -111,9 +120,10 @@ public sealed record WarState(
             Objectives = Objectives is { Count: > 0 } ? Objectives : fallback.Objectives,
             Airbases = Airbases is { Count: > 0 } ? Airbases : fallback.Airbases,
             Squadrons = Squadrons is { Count: > 0 } ? Squadrons : fallback.Squadrons,
-            MissionPackages = MissionPackages is { Count: > 0 } ? MissionPackages : fallback.MissionPackages,
+            MissionPackages = MissionPackages ?? fallback.MissionPackages,
             GroundUnits = GroundUnits is { Count: > 0 } ? GroundUnits : fallback.GroundUnits,
             SupplyDepots = SupplyDepots is { Count: > 0 } ? SupplyDepots : fallback.SupplyDepots,
+            Factories = Factories is { Count: > 0 } ? Factories : fallback.Factories,
             Frontlines = Frontlines is { Count: > 0 } ? Frontlines : fallback.Frontlines,
             AiPlan = AiPlan ?? fallback.AiPlan
         };

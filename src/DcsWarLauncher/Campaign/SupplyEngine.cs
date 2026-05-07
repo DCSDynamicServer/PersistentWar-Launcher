@@ -9,7 +9,7 @@ public static class SupplyEngine
         var enemySuccess = depot.Coalition == "blue" ? report.RedMissionSuccess : report.BlueMissionSuccess;
         var friendlyLosses = depot.Coalition == "blue" ? report.BlueLosses : report.RedLosses;
         var pressure = Math.Max(0, enemySuccess / 2);
-        var stores = Math.Clamp(depot.Stores + 8 - pressure - friendlyLosses / 4, 0, 100);
+        var stores = Math.Clamp(depot.Stores - pressure - friendlyLosses / 4, 0, 100);
         var status = stores switch
         {
             <= 20 => "critical",

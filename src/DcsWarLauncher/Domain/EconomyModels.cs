@@ -8,3 +8,12 @@ public sealed record SupplyDepotState(
     int X,
     int Y,
     string Status);
+
+public sealed record FactoryState(
+    string Name,
+    string Coalition,
+    string Location,
+    string OutputType,
+    int Health,
+    int Production,
+    string Status);

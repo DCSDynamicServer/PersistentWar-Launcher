@@ -10,9 +10,12 @@ public sealed class TurnEngine
 
         var pressure = CampaignPressure.From(report);
 
+        var factories = ReinforcementEngine.AdvanceFactories(state.Factories, report);
+
         var supplyDepots = state.SupplyDepots
             .Select(depot => SupplyEngine.AdvanceDepot(depot, report))
             .ToList();
+        supplyDepots = ReinforcementEngine.ApplyFactorySupply(supplyDepots, factories);
         var groundUnits = state.GroundUnits
             .Select(unit => GroundWarEngine.AdvanceUnit(unit, supplyDepots, report))
             .ToList();
@@ -25,6 +28,8 @@ public sealed class TurnEngine
         var squadrons = state.Squadrons
             .Select(squadron => SquadronEngine.AdvanceSquadron(squadron, report))
             .ToList();
+        squadrons = ReinforcementEngine.ApplyAircraftReplacements(squadrons, factories, supplyDepots);
+        groundUnits = ReinforcementEngine.ApplyGroundReinforcements(groundUnits, supplyDepots, factories);
 
         var frontlines = FrontlineEngine.BuildFrontlines(objectives, state.Turn + 1);
         var aiPlan = PlanningEngine.BuildAiPlan(objectives, airbases, pressure.NetPressure);
@@ -43,6 +48,7 @@ public sealed class TurnEngine
             MissionPackages = missionPackages,
             GroundUnits = groundUnits,
             SupplyDepots = supplyDepots,
+            Factories = factories,
             Frontlines = frontlines,
             AiPlan = aiPlan,
             CurrentTurnStartedUtc = now,

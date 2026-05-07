@@ -32,7 +32,8 @@ const els = {
   missionPackages: document.querySelector("#missionPackages"),
   squadrons: document.querySelector("#squadrons"),
   groundUnits: document.querySelector("#groundUnits"),
-  supplyDepots: document.querySelector("#supplyDepots")
+  supplyDepots: document.querySelector("#supplyDepots"),
+  factories: document.querySelector("#factories")
 };
 
 let currentState = null;
@@ -86,6 +87,7 @@ async function loadState() {
   renderSquadrons();
   renderGroundUnits();
   renderSupplyDepots();
+  renderFactories();
   updateRemaining();
 }
 
@@ -188,6 +190,30 @@ function renderSupplyDepots() {
       ${meter("Stores", depot.stores, depot.coalition)}
     `;
     els.supplyDepots.appendChild(card);
+  }
+}
+
+function renderFactories() {
+  els.factories.innerHTML = "";
+  for (const factory of currentState.factories || []) {
+    const card = document.createElement("article");
+    card.className = `factory-card ${factory.coalition}`;
+    card.innerHTML = `
+      <header>
+        <strong>${factory.name}</strong>
+        <span>${factory.status}</span>
+      </header>
+      <div class="squadron-meta">
+        <span>${factory.location}</span>
+        <span>${factory.outputType}</span>
+      </div>
+      ${meter("Health", factory.health, factory.coalition)}
+      <div class="meter-row">
+        <span>Production</span>
+        <strong>${factory.production}</strong>
+      </div>
+    `;
+    els.factories.appendChild(card);
   }
 }
 

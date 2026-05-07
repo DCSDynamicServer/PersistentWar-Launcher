@@ -22,10 +22,12 @@ public static class GroundWarEngine
         var strength = Math.Clamp(unit.Strength - enemySuccess / 3 - losses / 4 + (supplied ? 2 : -2), 0, 100);
         var supply = Math.Clamp(unit.Supply + supplyDelta - postureCost, 0, 100);
         var readiness = Math.Clamp(unit.Readiness + (supplied ? 3 : -5) - losses / 3, 0, 100);
-        var posture = supply < 25 || readiness < 30
+        var posture = strength < 30 || supply < 25 || readiness < 30
             ? "reorganizing"
-            : unit.Posture == "reserve" && readiness > 70
-                ? "attacking"
+            : strength < 45 && unit.Posture == "attacking"
+                ? "defending"
+                : unit.Posture == "reserve" && readiness > 70
+                    ? "attacking"
                 : unit.Posture;
 
         return unit with

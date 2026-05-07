@@ -207,7 +207,8 @@ button.wide {
 .packages-panel,
 .squadrons-panel,
 .ground-panel,
-.depots-panel {
+.depots-panel,
+.factories-panel {
   margin-top: 18px;
 }
 
@@ -386,7 +387,8 @@ button.wide {
 .mission-packages,
 .squadrons,
 .ground-units,
-.supply-depots {
+.supply-depots,
+.factories {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
@@ -396,7 +398,8 @@ button.wide {
 .package-card,
 .squadron-card,
 .ground-card,
-.depot-card {
+.depot-card,
+.factory-card {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel-soft);
@@ -407,7 +410,8 @@ button.wide {
 .package-card header,
 .squadron-card header,
 .ground-card header,
-.depot-card header {
+.depot-card header,
+.factory-card header {
   display: flex;
   justify-content: space-between;
   gap: 10px;

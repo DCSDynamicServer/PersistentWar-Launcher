@@ -1,0 +1,360 @@
+using DcsWarLauncher.Campaign;
+using DcsWarLauncher.Domain;
+
+var tests = new (string Name, Action Test)[]
+{
+    ("Supply depot loses stores under enemy pressure", SupplyDepotLosesStoresUnderEnemyPressure),
+    ("Undersupplied ground unit reorganizes", UndersuppliedGroundUnitReorganizes),
+    ("Weak attacking ground unit falls back", WeakAttackingGroundUnitFallsBack),
+    ("Ground pressure can capture objective", GroundPressureCanCaptureObjective),
+    ("Ground control can capture airbase", GroundControlCanCaptureAirbase),
+    ("Squadron engine does not repair aircraft", SquadronEngineDoesNotRepairAircraft),
+    ("Turn engine advances full state", TurnEngineAdvancesFullState),
+    ("Turn engine creates no packages without ready aircraft", TurnCreatesNoPackagesWithoutReadyAircraft),
+    ("Normalize preserves empty mission packages", NormalizePreservesEmptyMissionPackages),
+    ("Planning engine skips packages without aircraft", PlanningSkipsPackagesWithoutAircraft),
+    ("Factories recover aircraft readiness", FactoriesRecoverAircraftReadiness),
+    ("Critical depots block aircraft recovery", CriticalDepotsBlockAircraftRecovery),
+    ("Damaged factories provide limited aircraft recovery", DamagedFactoriesProvideLimitedAircraftRecovery),
+    ("Offline factories do not restock critical depots", OfflineFactoriesDoNotRestockCriticalDepots),
+    ("Damaged ground factories slowly restock depots", DamagedGroundFactoriesSlowlyRestockDepots),
+    ("Factories reinforce supplied ground units", FactoriesReinforceSuppliedGroundUnits),
+    ("Turn engine keeps factories populated", TurnEngineKeepsFactoriesPopulated)
+};
+
+var failures = new List<string>();
+foreach (var (name, test) in tests)
+{
+    try
+    {
+        test();
+        Console.WriteLine($"PASS {name}");
+    }
+    catch (Exception ex)
+    {
+        failures.Add($"{name}: {ex.Message}");
+        Console.WriteLine($"FAIL {name}");
+        Console.WriteLine(ex.Message);
+    }
+}
+
+if (failures.Count > 0)
+{
+    Console.WriteLine();
+    Console.WriteLine($"{failures.Count} test(s) failed.");
+    Environment.Exit(1);
+}
+
+Console.WriteLine();
+Console.WriteLine($"{tests.Length} tests passed.");
+
+static void SupplyDepotLosesStoresUnderEnemyPressure()
+{
+    var depot = new SupplyDepotState("Gudauta Depot", "blue", "Gudauta", 40, 10, 10, "active");
+    var report = new BattleReport(0, 30, 4, 0, -5);
+
+    var result = SupplyEngine.AdvanceDepot(depot, report);
+
+    Assert.Equal(24, result.Stores);
+    Assert.Equal("strained", result.Status);
+}
+
+static void UndersuppliedGroundUnitReorganizes()
+{
+    var unit = new GroundUnitState("1st Blue Armored", "blue", "armor", "Sukhumi", 40, 20, 28, "attacking");
+    var depots = new[]
+    {
+        new SupplyDepotState("Gudauta Depot", "blue", "Gudauta", 10, 10, 10, "critical")
+    };
+    var report = new BattleReport(0, 12, 3, 0, -2);
+
+    var result = GroundWarEngine.AdvanceUnit(unit, depots, report);
+
+    Assert.Equal("reorganizing", result.Posture);
+    Assert.True(result.Supply < unit.Supply, "Expected supply to decrease.");
+    Assert.True(result.Readiness < unit.Readiness, "Expected readiness to decrease.");
+}
+
+static void WeakAttackingGroundUnitFallsBack()
+{
+    var unit = new GroundUnitState("45th Red Motor Rifle", "red", "mechanized", "Sukhumi", 38, 80, 70, "attacking");
+    var depots = new[]
+    {
+        new SupplyDepotState("Senaki Depot", "red", "Senaki", 90, 60, 60, "active")
+    };
+    var report = new BattleReport(0, 0, 0, 0, 0);
+
+    var result = GroundWarEngine.AdvanceUnit(unit, depots, report);
+
+    Assert.Equal("defending", result.Posture);
+}
+
+static void GroundPressureCanCaptureObjective()
+{
+    var objective = new ObjectiveState("Sukhumi", "contested", 52);
+    var groundUnits = new[]
+    {
+        new GroundUnitState("Blue Armor", "blue", "armor", "Sukhumi", 100, 100, 100, "attacking")
+    };
+
+    var result = ObjectiveEngine.AdvanceObjective(objective, groundUnits, 8);
+
+    Assert.Equal("blue", result.Owner);
+    Assert.True(result.Strength >= 70, "Expected blue objective strength threshold.");
+}
+
+static void GroundControlCanCaptureAirbase()
+{
+    var airbase = new AirbaseState("Senaki", "red", 60, 50, 50, 50, "operational");
+    var objectives = new[]
+    {
+        new ObjectiveState("Senaki", "contested", 55)
+    };
+    var groundUnits = new[]
+    {
+        new GroundUnitState("Blue Armor", "blue", "armor", "Senaki", 100, 100, 100, "attacking")
+    };
+    var report = new BattleReport(8, 4, 1, 3, 2);
+
+    var result = AirbaseEngine.AdvanceAirbase(airbase, objectives, groundUnits, report);
+
+    Assert.Equal("blue", result.Owner);
+    Assert.Equal("operational", result.Status);
+}
+
+static void SquadronEngineDoesNotRepairAircraft()
+{
+    var squadron = new SquadronState("11th Fighter Squadron", "blue", "F-16C", "Gudauta", 14, 5, 50);
+    var report = new BattleReport(0, 0, 0, 0, 0);
+
+    var result = SquadronEngine.AdvanceSquadron(squadron, report);
+
+    Assert.Equal(5, result.AircraftReady);
+    Assert.Equal(50, result.PilotReadiness);
+}
+
+static void TurnEngineAdvancesFullState()
+{
+    var state = WarState.CreateDefault();
+    var report = new BattleReport(12, 7, 3, 8, 4);
+
+    var result = new TurnEngine().Advance(state, report);
+
+    Assert.Equal(state.Turn + 1, result.Turn);
+    Assert.Equal(6, result.TurnDurationHours);
+    Assert.Equal(report, result.LastBattleReport);
+    Assert.NotEmpty(result.Objectives, "Objectives should remain populated.");
+    Assert.NotEmpty(result.Airbases, "Airbases should remain populated.");
+    Assert.NotEmpty(result.GroundUnits, "Ground units should remain populated.");
+    Assert.NotEmpty(result.SupplyDepots, "Supply depots should remain populated.");
+    Assert.NotEmpty(result.MissionPackages, "Mission packages should be planned.");
+    Assert.True(result.CurrentTurnEndsUtc > result.CurrentTurnStartedUtc, "Turn end should be after start.");
+}
+
+static void PlanningSkipsPackagesWithoutAircraft()
+{
+    var aiPlan = new[]
+    {
+        new AiOrder("blue", "Exploit breakthrough", "Sukhumi", 70)
+    };
+    var squadrons = new[]
+    {
+        new SquadronState("Empty Squadron", "blue", "F-16C", "Gudauta", 12, 0, 90)
+    };
+
+    var packages = PlanningEngine.BuildMissionPackages(aiPlan, squadrons);
+
+    Assert.Empty(packages, "No ready aircraft should mean no package.");
+}
+
+static void TurnCreatesNoPackagesWithoutReadyAircraft()
+{
+    var state = WarState.CreateDefault() with
+    {
+        Squadrons = WarState.CreateDefault().Squadrons
+            .Select(squadron => squadron with { AircraftReady = 0, PilotReadiness = 0 })
+            .ToList(),
+        Factories = WarState.CreateDefault().Factories
+            .Select(factory => factory.OutputType == "aircraft"
+                ? factory with { Health = 0, Production = 0, Status = "offline" }
+                : factory)
+            .ToList()
+    };
+    var report = new BattleReport(25, 25, 50, 50, 0);
+
+    var result = new TurnEngine().Advance(state, report);
+
+    Assert.Empty(result.MissionPackages, "No ready aircraft after turn should mean no packages.");
+}
+
+static void NormalizePreservesEmptyMissionPackages()
+{
+    var state = WarState.CreateDefault() with { MissionPackages = [] };
+
+    var normalized = state.Normalize();
+
+    Assert.Empty(normalized.MissionPackages, "An empty package plan is valid and should not be replaced by defaults.");
+}
+
+static void FactoriesRecoverAircraftReadiness()
+{
+    var squadrons = new[]
+    {
+        new SquadronState("11th Fighter Squadron", "blue", "F-16C", "Gudauta", 14, 0, 0)
+    };
+    var factories = new[]
+    {
+        new FactoryState("Blue Aircraft Works", "blue", "Gudauta", "aircraft", 100, 3, "active")
+    };
+    var depots = new[]
+    {
+        new SupplyDepotState("Gudauta Depot", "blue", "Gudauta", 60, 18, 28, "active")
+    };
+
+    var result = ReinforcementEngine.ApplyAircraftReplacements(squadrons, factories, depots);
+
+    Assert.Equal(3, result[0].AircraftReady);
+    Assert.True(result[0].PilotReadiness > 0, "Expected pilot readiness to recover.");
+}
+
+static void CriticalDepotsBlockAircraftRecovery()
+{
+    var squadrons = new[]
+    {
+        new SquadronState("11th Fighter Squadron", "blue", "F-16C", "Gudauta", 14, 0, 0)
+    };
+    var factories = new[]
+    {
+        new FactoryState("Blue Aircraft Works", "blue", "Gudauta", "aircraft", 100, 3, "active")
+    };
+    var depots = new[]
+    {
+        new SupplyDepotState("Gudauta Depot", "blue", "Gudauta", 20, 18, 28, "critical")
+    };
+
+    var result = ReinforcementEngine.ApplyAircraftReplacements(squadrons, factories, depots);
+
+    Assert.Equal(0, result[0].AircraftReady);
+    Assert.Equal(0, result[0].PilotReadiness);
+}
+
+static void DamagedFactoriesProvideLimitedAircraftRecovery()
+{
+    var squadrons = new[]
+    {
+        new SquadronState("11th Fighter Squadron", "blue", "F-16C", "Gudauta", 14, 0, 0)
+    };
+    var factories = new[]
+    {
+        new FactoryState("Blue Aircraft Works", "blue", "Gudauta", "aircraft", 40, 3, "damaged")
+    };
+    var depots = new[]
+    {
+        new SupplyDepotState("Gudauta Depot", "blue", "Gudauta", 60, 18, 28, "active")
+    };
+
+    var result = ReinforcementEngine.ApplyAircraftReplacements(squadrons, factories, depots);
+
+    Assert.Equal(1, result[0].AircraftReady);
+    Assert.Equal(2, result[0].PilotReadiness);
+}
+
+static void OfflineFactoriesDoNotRestockCriticalDepots()
+{
+    var state = WarState.CreateDefault() with
+    {
+        SupplyDepots = WarState.CreateDefault().SupplyDepots
+            .Select(depot => depot with { Stores = 0, Status = "critical" })
+            .ToList(),
+        Factories = WarState.CreateDefault().Factories
+            .Select(factory => factory with { Health = 10, Production = 0, Status = "offline" })
+            .ToList()
+    };
+
+    var result = new TurnEngine().Advance(state, new BattleReport(0, 0, 0, 0, 0));
+
+    Assert.True(result.SupplyDepots.All(depot => depot.Stores == 0), "Offline factories should not create depot stores.");
+}
+
+static void DamagedGroundFactoriesSlowlyRestockDepots()
+{
+    var depots = new[]
+    {
+        new SupplyDepotState("Gudauta Depot", "blue", "Gudauta", 0, 18, 28, "critical")
+    };
+    var factories = new[]
+    {
+        new FactoryState("Blue Army Depot", "blue", "Gudauta", "ground", 35, 1, "damaged")
+    };
+
+    var result = ReinforcementEngine.ApplyFactorySupply(depots, factories);
+
+    Assert.Equal(1, result[0].Stores);
+    Assert.Equal("critical", result[0].Status);
+}
+
+static void FactoriesReinforceSuppliedGroundUnits()
+{
+    var units = new[]
+    {
+        new GroundUnitState("1st Blue Armored", "blue", "armor", "Sukhumi", 20, 60, 32, "reorganizing")
+    };
+    var depots = new[]
+    {
+        new SupplyDepotState("Sukhumi Forward Depot", "blue", "Sukhumi", 60, 36, 48, "active")
+    };
+    var factories = new[]
+    {
+        new FactoryState("Blue Army Depot", "blue", "Gudauta", "ground", 100, 6, "active")
+    };
+
+    var result = ReinforcementEngine.ApplyGroundReinforcements(units, depots, factories);
+
+    Assert.True(result[0].Strength > units[0].Strength, "Expected strength to recover.");
+    Assert.True(result[0].Readiness > units[0].Readiness, "Expected readiness to recover.");
+}
+
+static void TurnEngineKeepsFactoriesPopulated()
+{
+    var state = WarState.CreateDefault();
+    var report = new BattleReport(0, 0, 0, 0, 0);
+
+    var result = new TurnEngine().Advance(state, report);
+
+    Assert.NotEmpty(result.Factories, "Factories should remain populated.");
+}
+
+static class Assert
+{
+    public static void Equal<T>(T expected, T actual)
+    {
+        if (!EqualityComparer<T>.Default.Equals(expected, actual))
+        {
+            throw new InvalidOperationException($"Expected '{expected}', got '{actual}'.");
+        }
+    }
+
+    public static void True(bool condition, string message)
+    {
+        if (!condition)
+        {
+            throw new InvalidOperationException(message);
+        }
+    }
+
+    public static void NotEmpty<T>(IReadOnlyCollection<T> items, string message)
+    {
+        if (items.Count == 0)
+        {
+            throw new InvalidOperationException(message);
+        }
+    }
+
+    public static void Empty<T>(IReadOnlyCollection<T> items, string message)
+    {
+        if (items.Count != 0)
+        {
+            throw new InvalidOperationException(message);
+        }
+    }
+}
