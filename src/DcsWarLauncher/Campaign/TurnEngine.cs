@@ -4,6 +4,8 @@ namespace DcsWarLauncher.Campaign;
 
 public sealed class TurnEngine
 {
+    private const int MaxHistoryEntries = 20;
+
     public WarState Advance(WarState state, BattleReport report)
     {
         state = state.Normalize();
@@ -35,6 +37,7 @@ public sealed class TurnEngine
         var aiPlan = PlanningEngine.BuildAiPlan(objectives, airbases, pressure.NetPressure);
         var missionPackages = PlanningEngine.BuildMissionPackages(aiPlan, squadrons);
         var now = DateTimeOffset.UtcNow;
+        var turnHistory = BuildTurnHistory(state, report, now);
 
         return state with
         {
@@ -51,10 +54,49 @@ public sealed class TurnEngine
             Factories = factories,
             Frontlines = frontlines,
             AiPlan = aiPlan,
+            TurnHistory = turnHistory,
             CurrentTurnStartedUtc = now,
             CurrentTurnEndsUtc = now.AddHours(state.TurnDurationHours),
             LastBattleReport = report,
             UpdatedUtc = now
         };
+    }
+
+    private static List<TurnHistoryEntry> BuildTurnHistory(
+        WarState state,
+        BattleReport report,
+        DateTimeOffset completedUtc)
+    {
+        var entry = new TurnHistoryEntry(
+            state.Turn,
+            completedUtc,
+            report,
+            BuildSummary(report));
+
+        return state.TurnHistory
+            .Append(entry)
+            .OrderByDescending(history => history.Turn)
+            .ThenByDescending(history => history.CompletedUtc)
+            .Take(MaxHistoryEntries)
+            .OrderBy(history => history.Turn)
+            .ThenBy(history => history.CompletedUtc)
+            .ToList();
+    }
+
+    private static string BuildSummary(BattleReport report)
+    {
+        var blue = report.BlueMissionSuccess - report.BlueLosses;
+        var red = report.RedMissionSuccess - report.RedLosses;
+        if (blue > red + 10)
+        {
+            return "Blue momentum";
+        }
+
+        if (red > blue + 10)
+        {
+            return "Red momentum";
+        }
+
+        return "Contested turn";
     }
 }

@@ -19,4 +19,10 @@ public sealed record BattleReport(
     public static BattleReport Empty => new(0, 0, 0, 0, 0);
 }
 
+public sealed record TurnHistoryEntry(
+    int Turn,
+    DateTimeOffset CompletedUtc,
+    BattleReport BattleReport,
+    string Summary);
+
 public sealed record AiOrder(string Coalition, string Task, string Target, int Confidence);

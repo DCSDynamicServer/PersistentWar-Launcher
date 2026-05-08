@@ -30,6 +30,7 @@ const els = {
   frontlineMap: document.querySelector("#frontlineMap"),
   aiPlan: document.querySelector("#aiPlan"),
   missionPackages: document.querySelector("#missionPackages"),
+  turnHistory: document.querySelector("#turnHistory"),
   squadrons: document.querySelector("#squadrons"),
   groundUnits: document.querySelector("#groundUnits"),
   supplyDepots: document.querySelector("#supplyDepots"),
@@ -84,6 +85,7 @@ async function loadState() {
   renderFrontlines();
   renderAiPlan();
   renderMissionPackages();
+  renderTurnHistory();
   renderSquadrons();
   renderGroundUnits();
   renderSupplyDepots();
@@ -259,6 +261,41 @@ function renderMissionPackages() {
       <small>${pack.target}</small>
     `;
     els.missionPackages.appendChild(card);
+  }
+}
+
+function renderTurnHistory() {
+  els.turnHistory.innerHTML = "";
+  const history = [...(currentState.turnHistory || [])]
+    .sort((left, right) => right.turn - left.turn)
+    .slice(0, 5);
+
+  if (history.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "Noch keine abgeschlossenen Turns.";
+    els.turnHistory.appendChild(empty);
+    return;
+  }
+
+  for (const entry of history) {
+    const report = entry.battleReport || {};
+    const item = document.createElement("article");
+    item.className = "history-row";
+    item.innerHTML = `
+      <div>
+        <strong>Turn ${entry.turn}</strong>
+        <span>${entry.summary}</span>
+      </div>
+      <dl>
+        <div><dt>Blue</dt><dd>${report.blueMissionSuccess ?? 0}</dd></div>
+        <div><dt>Red</dt><dd>${report.redMissionSuccess ?? 0}</dd></div>
+        <div><dt>B Loss</dt><dd>${report.blueLosses ?? 0}</dd></div>
+        <div><dt>R Loss</dt><dd>${report.redLosses ?? 0}</dd></div>
+        <div><dt>Air</dt><dd>${report.airSuperiority ?? 0}</dd></div>
+      </dl>
+    `;
+    els.turnHistory.appendChild(item);
   }
 }
 

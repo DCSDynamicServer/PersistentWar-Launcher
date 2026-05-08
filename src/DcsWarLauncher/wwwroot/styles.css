@@ -202,6 +202,7 @@ button.wide {
 }
 
 .turn-panel,
+.history-panel,
 .map-panel,
 .ai-panel,
 .packages-panel,
@@ -385,6 +386,7 @@ button.wide {
 
 .ai-plan,
 .mission-packages,
+.turn-history,
 .squadrons,
 .ground-units,
 .supply-depots,
@@ -392,6 +394,55 @@ button.wide {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
+}
+
+.turn-history {
+  grid-template-columns: 1fr;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: minmax(150px, .7fr) 1fr;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 12px 14px;
+}
+
+.history-row span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.history-row dl {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(58px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.history-row dl div {
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+}
+
+.history-row dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.history-row dd {
+  margin: 4px 0 0;
+  font-weight: 800;
+}
+
+.empty-state {
+  margin: 0;
+  color: var(--muted);
 }
 
 .ai-order,
@@ -515,6 +566,11 @@ button.wide {
   .war-meta,
   .supply,
   .battle-report {
+    grid-template-columns: 1fr;
+  }
+
+  .history-row,
+  .history-row dl {
     grid-template-columns: 1fr;
   }
 }

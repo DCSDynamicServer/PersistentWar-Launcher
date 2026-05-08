@@ -2,6 +2,7 @@ namespace DcsWarLauncher.Domain;
 
 public sealed record WarState(
     string Theater,
+    int SchemaVersion,
     int Turn,
     string Phase,
     int TurnDurationHours,
@@ -18,9 +19,12 @@ public sealed record WarState(
     List<FactoryState> Factories,
     List<FrontlineSegment> Frontlines,
     List<AiOrder> AiPlan,
+    List<TurnHistoryEntry> TurnHistory,
     BattleReport? LastBattleReport,
     DateTimeOffset UpdatedUtc)
 {
+    public const int CurrentSchemaVersion = 1;
+
     public static WarState CreateDefault()
     {
         var now = DateTimeOffset.UtcNow;
@@ -76,6 +80,7 @@ public sealed record WarState(
 
         return new WarState(
             "Caucasus",
+            CurrentSchemaVersion,
             1,
             "Planning",
             6,
@@ -98,6 +103,7 @@ public sealed record WarState(
                 new AiOrder("blue", "Build pressure on contested airfields", "Sukhumi", 62),
                 new AiOrder("red", "Interdict blue supply routes", "Senaki", 58)
             ],
+            [],
             null,
             now);
     }
@@ -114,6 +120,7 @@ public sealed record WarState(
 
         return this with
         {
+            SchemaVersion = CurrentSchemaVersion,
             TurnDurationHours = duration,
             CurrentTurnStartedUtc = started,
             CurrentTurnEndsUtc = CurrentTurnEndsUtc == default ? started.AddHours(duration) : CurrentTurnEndsUtc,
@@ -125,7 +132,8 @@ public sealed record WarState(
             SupplyDepots = SupplyDepots is { Count: > 0 } ? SupplyDepots : fallback.SupplyDepots,
             Factories = Factories is { Count: > 0 } ? Factories : fallback.Factories,
             Frontlines = Frontlines is { Count: > 0 } ? Frontlines : fallback.Frontlines,
-            AiPlan = AiPlan ?? fallback.AiPlan
+            AiPlan = AiPlan ?? fallback.AiPlan,
+            TurnHistory = TurnHistory ?? []
         };
     }
 }

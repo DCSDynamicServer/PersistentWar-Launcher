@@ -36,3 +36,13 @@
 - Log-Rotation und Healthchecks.
 - Backup des Campaign-State.
 - Admin-Login, Token-Rotation und IP-Allowlist.
+
+## Nach v0.1: Campaign Setup Wizards
+
+- Neue Campaign ueber UI erstellen.
+- Theater, Hauptbasen und Turn-Dauer auswaehlen.
+- Player-Slots pro Hauptbasis konfigurieren, ohne sie spaeter automatisch zu entfernen.
+- Squadrons, Ground Units, Supply Depots und Factories ueber Formulare anlegen.
+- Template-Mission auswaehlen und mit Campaign-Daten verknuepfen.
+- Balancing-Presets fuer Attrition, Repair, Supply und Reinforcement einstellen.
+- Server- und Remote-Settings gefuehrt einrichten.

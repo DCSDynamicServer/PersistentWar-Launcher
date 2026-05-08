@@ -1,5 +1,8 @@
 using DcsWarLauncher.Campaign;
 using DcsWarLauncher.Domain;
+using DcsWarLauncher.Infrastructure;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.FileProviders;
 
 var tests = new (string Name, Action Test)[]
 {
@@ -19,7 +22,13 @@ var tests = new (string Name, Action Test)[]
     ("Offline factories do not restock critical depots", OfflineFactoriesDoNotRestockCriticalDepots),
     ("Damaged ground factories slowly restock depots", DamagedGroundFactoriesSlowlyRestockDepots),
     ("Factories reinforce supplied ground units", FactoriesReinforceSuppliedGroundUnits),
-    ("Turn engine keeps factories populated", TurnEngineKeepsFactoriesPopulated)
+    ("Turn engine keeps factories populated", TurnEngineKeepsFactoriesPopulated),
+    ("Normalize upgrades war state schema", NormalizeUpgradesWarStateSchema),
+    ("State store creates backup before overwrite", StateStoreCreatesBackupBeforeOverwrite),
+    ("State store recovers corrupt save", StateStoreRecoversCorruptSave),
+    ("State store prunes old backups", StateStorePrunesOldBackups),
+    ("Turn engine appends battle report history", TurnEngineAppendsBattleReportHistory),
+    ("Turn history keeps latest twenty entries", TurnHistoryKeepsLatestTwentyEntries)
 };
 
 var failures = new List<string>();
@@ -324,6 +333,111 @@ static void TurnEngineKeepsFactoriesPopulated()
     Assert.NotEmpty(result.Factories, "Factories should remain populated.");
 }
 
+static void NormalizeUpgradesWarStateSchema()
+{
+    var state = WarState.CreateDefault() with { SchemaVersion = 0 };
+
+    var normalized = state.Normalize();
+
+    Assert.Equal(WarState.CurrentSchemaVersion, normalized.SchemaVersion);
+}
+
+static void StateStoreCreatesBackupBeforeOverwrite()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var store = new StateStore(new TestEnvironment(root));
+        store.SaveAsync(WarState.CreateDefault()).GetAwaiter().GetResult();
+        store.SaveAsync(WarState.CreateDefault() with { Turn = 2 }).GetAwaiter().GetResult();
+
+        var backups = Directory.GetFiles(Path.Combine(root, "Data", "Backups"), "*.json");
+        Assert.True(backups.Length == 1, "Expected one state backup before overwrite.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void StateStoreRecoversCorruptSave()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var dataPath = Path.Combine(root, "Data");
+        Directory.CreateDirectory(dataPath);
+        File.WriteAllText(Path.Combine(dataPath, "war-state.json"), "{ broken json");
+
+        var store = new StateStore(new TestEnvironment(root));
+        var state = store.LoadAsync().GetAwaiter().GetResult();
+
+        Assert.Equal(1, state.Turn);
+        Assert.Equal(WarState.CurrentSchemaVersion, state.SchemaVersion);
+        Assert.True(Directory.GetFiles(Path.Combine(dataPath, "Backups"), "*.json").Length == 1, "Expected corrupt save backup.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void StateStorePrunesOldBackups()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var store = new StateStore(new TestEnvironment(root));
+        store.SaveAsync(WarState.CreateDefault()).GetAwaiter().GetResult();
+        for (var i = 0; i < 35; i++)
+        {
+            store.SaveAsync(WarState.CreateDefault() with { Turn = i + 2 }).GetAwaiter().GetResult();
+        }
+
+        var backups = Directory.GetFiles(Path.Combine(root, "Data", "Backups"), "*.json");
+        Assert.Equal(30, backups.Length);
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void TurnEngineAppendsBattleReportHistory()
+{
+    var state = WarState.CreateDefault();
+    var report = new BattleReport(25, 5, 2, 8, 10);
+
+    var result = new TurnEngine().Advance(state, report);
+
+    Assert.Equal(1, result.TurnHistory.Count);
+    Assert.Equal(state.Turn, result.TurnHistory[0].Turn);
+    Assert.Equal(report, result.TurnHistory[0].BattleReport);
+    Assert.Equal("Blue momentum", result.TurnHistory[0].Summary);
+}
+
+static void TurnHistoryKeepsLatestTwentyEntries()
+{
+    var state = WarState.CreateDefault();
+    var engine = new TurnEngine();
+
+    for (var i = 0; i < 25; i++)
+    {
+        state = engine.Advance(state, BattleReport.Empty);
+    }
+
+    Assert.Equal(20, state.TurnHistory.Count);
+    Assert.Equal(6, state.TurnHistory[0].Turn);
+    Assert.Equal(25, state.TurnHistory[^1].Turn);
+}
+
+static string CreateTempRoot()
+{
+    var root = Path.Combine(Path.GetTempPath(), "DcsWarLauncherTests", Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(root);
+    return root;
+}
+
 static class Assert
 {
     public static void Equal<T>(T expected, T actual)
@@ -357,4 +471,14 @@ static class Assert
             throw new InvalidOperationException(message);
         }
     }
+}
+
+sealed class TestEnvironment(string contentRootPath) : IWebHostEnvironment
+{
+    public string ApplicationName { get; set; } = "DcsWarLauncher.Tests";
+    public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+    public string ContentRootPath { get; set; } = contentRootPath;
+    public string EnvironmentName { get; set; } = "Test";
+    public string WebRootPath { get; set; } = contentRootPath;
+    public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
 }
