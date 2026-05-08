@@ -1,6 +1,8 @@
 namespace DcsWarLauncher.Domain;
 
 public sealed record WarState(
+    string CampaignId,
+    string CampaignName,
     string Theater,
     int SchemaVersion,
     int Turn,
@@ -21,6 +23,7 @@ public sealed record WarState(
     List<AiOrder> AiPlan,
     List<TurnHistoryEntry> TurnHistory,
     BattleReport? LastBattleReport,
+    DateTimeOffset CreatedUtc,
     DateTimeOffset UpdatedUtc)
 {
     public const int CurrentSchemaVersion = 1;
@@ -79,6 +82,8 @@ public sealed record WarState(
         };
 
         return new WarState(
+            $"campaign-{now:yyyyMMddHHmmss}",
+            "Caucasus Persistent War",
             "Caucasus",
             CurrentSchemaVersion,
             1,
@@ -105,6 +110,7 @@ public sealed record WarState(
             ],
             [],
             null,
+            now,
             now);
     }
 
@@ -112,6 +118,12 @@ public sealed record WarState(
     {
         var fallback = CreateDefault();
         var duration = TurnDurationHours <= 0 ? 6 : TurnDurationHours;
+        var created = CreatedUtc == default ? UpdatedUtc : CreatedUtc;
+        if (created == default)
+        {
+            created = DateTimeOffset.UtcNow;
+        }
+
         var started = CurrentTurnStartedUtc == default ? UpdatedUtc : CurrentTurnStartedUtc;
         if (started == default)
         {
@@ -120,6 +132,9 @@ public sealed record WarState(
 
         return this with
         {
+            CampaignId = string.IsNullOrWhiteSpace(CampaignId) ? fallback.CampaignId : CampaignId,
+            CampaignName = string.IsNullOrWhiteSpace(CampaignName) ? fallback.CampaignName : CampaignName,
+            Theater = string.IsNullOrWhiteSpace(Theater) ? fallback.Theater : Theater,
             SchemaVersion = CurrentSchemaVersion,
             TurnDurationHours = duration,
             CurrentTurnStartedUtc = started,
@@ -133,7 +148,9 @@ public sealed record WarState(
             Factories = Factories is { Count: > 0 } ? Factories : fallback.Factories,
             Frontlines = Frontlines is { Count: > 0 } ? Frontlines : fallback.Frontlines,
             AiPlan = AiPlan ?? fallback.AiPlan,
-            TurnHistory = TurnHistory ?? []
+            TurnHistory = TurnHistory ?? [],
+            CreatedUtc = created,
+            UpdatedUtc = UpdatedUtc == default ? DateTimeOffset.UtcNow : UpdatedUtc
         };
     }
 }

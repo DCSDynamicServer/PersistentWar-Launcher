@@ -24,6 +24,8 @@ var tests = new (string Name, Action Test)[]
     ("Factories reinforce supplied ground units", FactoriesReinforceSuppliedGroundUnits),
     ("Turn engine keeps factories populated", TurnEngineKeepsFactoriesPopulated),
     ("Normalize upgrades war state schema", NormalizeUpgradesWarStateSchema),
+    ("Normalize fills campaign metadata", NormalizeFillsCampaignMetadata),
+    ("Turn engine preserves campaign metadata", TurnEnginePreservesCampaignMetadata),
     ("State store creates backup before overwrite", StateStoreCreatesBackupBeforeOverwrite),
     ("State store recovers corrupt save", StateStoreRecoversCorruptSave),
     ("State store prunes old backups", StateStorePrunesOldBackups),
@@ -340,6 +342,44 @@ static void NormalizeUpgradesWarStateSchema()
     var normalized = state.Normalize();
 
     Assert.Equal(WarState.CurrentSchemaVersion, normalized.SchemaVersion);
+}
+
+static void NormalizeFillsCampaignMetadata()
+{
+    var state = WarState.CreateDefault() with
+    {
+        CampaignId = "",
+        CampaignName = "",
+        Theater = "",
+        CreatedUtc = default,
+        UpdatedUtc = default
+    };
+
+    var normalized = state.Normalize();
+
+    Assert.True(!string.IsNullOrWhiteSpace(normalized.CampaignId), "Expected campaign id.");
+    Assert.Equal("Caucasus Persistent War", normalized.CampaignName);
+    Assert.Equal("Caucasus", normalized.Theater);
+    Assert.True(normalized.CreatedUtc != default, "Expected created timestamp.");
+    Assert.True(normalized.UpdatedUtc != default, "Expected updated timestamp.");
+}
+
+static void TurnEnginePreservesCampaignMetadata()
+{
+    var created = DateTimeOffset.UtcNow.AddDays(-2);
+    var state = WarState.CreateDefault() with
+    {
+        CampaignId = "campaign-test",
+        CampaignName = "Test Campaign",
+        CreatedUtc = created
+    };
+
+    var result = new TurnEngine().Advance(state, BattleReport.Empty);
+
+    Assert.Equal("campaign-test", result.CampaignId);
+    Assert.Equal("Test Campaign", result.CampaignName);
+    Assert.Equal(created, result.CreatedUtc);
+    Assert.True(result.UpdatedUtc > created, "Expected updated timestamp to advance.");
 }
 
 static void StateStoreCreatesBackupBeforeOverwrite()

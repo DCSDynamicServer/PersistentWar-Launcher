@@ -58,6 +58,7 @@ public sealed class TurnEngine
             CurrentTurnStartedUtc = now,
             CurrentTurnEndsUtc = now.AddHours(state.TurnDurationHours),
             LastBattleReport = report,
+            CreatedUtc = state.CreatedUtc,
             UpdatedUtc = now
         };
     }

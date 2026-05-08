@@ -10,6 +10,8 @@ const els = {
   schedulerChecked: document.querySelector("#schedulerChecked"),
   schedulerRun: document.querySelector("#schedulerRun"),
   schedulerMessage: document.querySelector("#schedulerMessage"),
+  campaignName: document.querySelector("#campaignName"),
+  campaignCreated: document.querySelector("#campaignCreated"),
   theater: document.querySelector("#theater"),
   turn: document.querySelector("#turn"),
   phase: document.querySelector("#phase"),
@@ -74,6 +76,10 @@ async function loadScheduler() {
 async function loadState() {
   const response = await fetch("/api/war/state");
   currentState = await response.json();
+  els.campaignName.textContent = currentState.campaignName || "Campaign";
+  els.campaignCreated.textContent = currentState.createdUtc
+    ? new Date(currentState.createdUtc).toLocaleDateString()
+    : "-";
   els.theater.textContent = currentState.theater;
   els.turn.textContent = currentState.turn;
   els.phase.textContent = currentState.phase;
