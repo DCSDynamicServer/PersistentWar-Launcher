@@ -26,9 +26,24 @@
 ## Phase 4: DCS Integration
 
 - Mission-Dateien erzeugen oder vorbereiten.
+- Template-Anker aus Mission Editor erkennen und mit Campaign-Objectives verknuepfen.
+- Weitere DCS-Anker-Typen fuer Airbases, Depots, Spawns, SAM/EWR und Reservepunkte vorbereiten.
+- Template-MIZ-Dokumentation in `docs/TEMPLATE_MIZ_GUIDE.md` aktuell halten.
 - DCS-Logs und Events einlesen.
 - Verluste und Objective-Erfolge automatisch in BattleReports umwandeln.
 - Automatischer 6h-Restart mit naechster Mission.
+
+## v0.09: Operational Core
+
+- Echte AI-Units und einfache Routen aus dem MissionPlan in die vorbereitete `.miz` schreiben.
+- AI-Packages an `WL_OBJ_*`, `WL_FRONT_*`, `WL_AIRBASE_*`, `WL_HELI_BASE_*` und `WL_FARP_*` Anker binden.
+- Airbase- und FARP-Startlogik fuer AI/Helis vorbereiten, inklusive Fallback auf sichere Basen.
+- Player-Slots weiterhin unveraendert aus dem Template erhalten.
+- DCS-Logs und Missionsergebnisse einlesen.
+- Automatische BattleReports aus Kills, Verlusten, Objective-Events und Missionsausgang erzeugen.
+- Warehouse/Fuel/Ammo-Patching fuer einfache Supply-Wirkung pro Base vorbereiten.
+- Operationalen 6h-Loop herstellen: Mission vorbereiten, Server starten, Turn laufen lassen, Ergebnis importieren, naechste Mission erzeugen.
+- Minimaler Admin-Testbetrieb mit mehreren Spielern auf dem Server.
 
 ## Phase 5: 24/7 Deployment
 
@@ -36,6 +51,15 @@
 - Log-Rotation und Healthchecks.
 - Backup des Campaign-State.
 - Admin-Login, Token-Rotation und IP-Allowlist.
+
+## Nach Phase 4: UI Cleanup / Navigation
+
+- Dashboard in klare Tabs aufteilen: Campaign, Forces, Mission, Server, History.
+- Oberen Statusbereich auf Serverstatus, aktuellen Turn, naechsten Restart und Warnungen reduzieren.
+- Mission Template, Mission Plan Vorschau, Export und MIZ-Vorbereitung in einen eigenen Mission-Tab verschieben.
+- Forces-Ansicht fuer Squadrons, Packages, Ground War, Supply und Factories zusammenfassen.
+- Turn History und spaetere Battle Reports/Log-Auswertung in einen eigenen History-Tab auslagern.
+- Keine neuen Features in diesem Block, nur bessere Bedienbarkeit und Uebersicht.
 
 ## Phase 5 Polish: Multiplayer Balance
 

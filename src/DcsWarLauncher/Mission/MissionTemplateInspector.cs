@@ -18,7 +18,7 @@ public sealed partial class MissionTemplateInspector(IWebHostEnvironment environ
             : null;
 
         return template is null
-            ? new MissionTemplateInspection("", _templatePath, false, "", RequiredFiles, [], ["No .miz template found."])
+            ? new MissionTemplateInspection("", _templatePath, false, "", RequiredFiles, [], [], ["No .miz template found."])
             : Inspect(template.FullName);
     }
 
@@ -37,10 +37,16 @@ public sealed partial class MissionTemplateInspector(IWebHostEnvironment environ
             var theater = ReadEntryText(archive, "theatre").Trim();
             var mission = ReadEntryText(archive, "mission");
             var clientGroups = InspectClientGroups(mission, warnings);
+            var anchors = InspectAnchors(mission);
 
             if (clientGroups.Count == 0)
             {
                 warnings.Add("No _CLIENT_ groups found.");
+            }
+
+            if (anchors.Count == 0)
+            {
+                warnings.Add("No WL_ template anchors found.");
             }
 
             return new MissionTemplateInspection(
@@ -50,6 +56,7 @@ public sealed partial class MissionTemplateInspector(IWebHostEnvironment environ
                 theater,
                 missingFiles,
                 clientGroups,
+                anchors,
                 warnings);
         }
         catch (InvalidDataException)
@@ -60,6 +67,7 @@ public sealed partial class MissionTemplateInspector(IWebHostEnvironment environ
                 false,
                 "",
                 RequiredFiles,
+                [],
                 [],
                 ["Template is not a readable .miz/zip file."]);
         }
@@ -116,6 +124,46 @@ public sealed partial class MissionTemplateInspector(IWebHostEnvironment environ
         return groups;
     }
 
+    private static List<TemplateAnchorInspection> InspectAnchors(string mission)
+    {
+        var anchorsByName = new Dictionary<string, TemplateAnchorInspection>(StringComparer.OrdinalIgnoreCase);
+        foreach (Match match in WlNameRegex().Matches(mission))
+        {
+            var name = match.Groups["name"].Value;
+            var zoneBlock = FindZoneBlock(mission, match.Index);
+            if (zoneBlock is null)
+            {
+                anchorsByName.TryAdd(name, new TemplateAnchorInspection(name, "named-object", null, null, null));
+                continue;
+            }
+
+            anchorsByName[name] = new TemplateAnchorInspection(
+                name,
+                "trigger-zone",
+                ParseField(zoneBlock, "x"),
+                ParseField(zoneBlock, "y"),
+                ParseField(zoneBlock, "radius"));
+        }
+
+        return anchorsByName.Values
+            .OrderBy(anchor => anchor.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static string? FindZoneBlock(string mission, int nameIndex)
+    {
+        var blockStart = mission.LastIndexOf("\n\t\t\t[", nameIndex, StringComparison.Ordinal);
+        if (blockStart < 0)
+        {
+            return null;
+        }
+
+        var blockEnd = mission.IndexOf("\n\t\t\t}", nameIndex, StringComparison.Ordinal);
+        return blockEnd < 0 || blockEnd <= blockStart
+            ? null
+            : mission[blockStart..blockEnd];
+    }
+
     private static string ReadEntryText(ZipArchive archive, string name)
     {
         var entry = archive.Entries.FirstOrDefault(candidate =>
@@ -141,4 +189,25 @@ public sealed partial class MissionTemplateInspector(IWebHostEnvironment environ
 
     [GeneratedRegex("\\[\\\"airdromeId\\\"\\]\\s*=\\s*(?<id>\\d+)")]
     private static partial Regex AirdromeRegex();
+
+    [GeneratedRegex("\\[\\\"name\\\"\\]\\s*=\\s*\\\"(?<name>WL_[^\\\"]+)\\\"")]
+    private static partial Regex WlNameRegex();
+
+    private static double? ParseField(string block, string fieldName)
+    {
+        var match = Regex.Match(
+            block,
+            $"\\[\\\"{Regex.Escape(fieldName)}\\\"\\]\\s*=\\s*(?<value>-?\\d+(?:\\.\\d+)?)",
+            RegexOptions.Singleline);
+        return match.Success ? ParseDouble(match.Groups["value"].Value) : null;
+    }
+
+    private static double? ParseDouble(string value) =>
+        double.TryParse(
+            value,
+            System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var result)
+            ? result
+            : null;
 }

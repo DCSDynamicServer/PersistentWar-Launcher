@@ -35,6 +35,7 @@ var tests = new (string Name, Action Test)[]
     ("Turn history keeps latest twenty entries", TurnHistoryKeepsLatestTwentyEntries),
     ("Mission plan exporter writes campaign plan", MissionPlanExporterWritesCampaignPlan),
     ("Mission plan exporter prepares mission copy", MissionPlanExporterPreparesMissionCopy),
+    ("Mission template inspector reports WL anchors", MissionTemplateInspectorReportsWlAnchors),
     ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
 };
 
@@ -481,6 +482,9 @@ static void MissionPlanExporterWritesCampaignPlan()
     var root = CreateTempRoot();
     try
     {
+        var templatePath = Path.Combine(root, "Data", "Templates");
+        Directory.CreateDirectory(templatePath);
+        CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
         var exporter = new MissionPlanExporter(new TestEnvironment(root));
         var state = WarState.CreateDefault() with
         {
@@ -500,6 +504,14 @@ static void MissionPlanExporterWritesCampaignPlan()
         Assert.True(json.Contains("_CLIENT_"), "Expected player slots policy in export.");
         Assert.True(json.Contains("frontlineMarkers"), "Expected frontline marker plans.");
         Assert.True(json.Contains("flightGroups"), "Expected flight group plans.");
+        Assert.True(json.Contains("templateBindings"), "Expected template anchor bindings.");
+        Assert.True(json.Contains("WL_OBJ_KUTAISI_BLUE"), "Expected objective anchor binding.");
+        Assert.True(json.Contains("WL_OBJ_KRASNODAR_BLUE"), "Expected Krasnodar Center alias binding.");
+        Assert.True(json.Contains("WL_AIRBASE_KUTAISI"), "Expected airbase anchor binding.");
+        Assert.True(json.Contains("WL_HELI_BASE_KUTAISI_BLUE"), "Expected heli base anchor binding.");
+        Assert.True(json.Contains("missingAirbaseAnchors"), "Expected missing airbase anchor report.");
+        Assert.True(json.Contains("WL_FARP_KUTAISI_BLUE"), "Expected missing FARP anchor name.");
+        Assert.True(json.Contains("WL_FRONT_01"), "Expected front anchor binding.");
         Assert.True(json.Contains("target-kutaisi-depot"), "Expected stable target ids.");
     }
     finally
@@ -558,6 +570,31 @@ static void MissionTemplateInspectorReportsMissingTemplate()
     }
 }
 
+static void MissionTemplateInspectorReportsWlAnchors()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var templatePath = Path.Combine(root, "Data", "Templates");
+        Directory.CreateDirectory(templatePath);
+        CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
+        var inspector = new MissionTemplateInspector(new TestEnvironment(root));
+
+        var result = inspector.InspectLatest();
+
+        Assert.True(result.Anchors.Any(anchor => anchor.Name == "WL_OBJ_KUTAISI_BLUE"), "Expected WL objective anchor.");
+        var anchor = result.Anchors.First(candidate => candidate.Name == "WL_OBJ_KUTAISI_BLUE");
+        Assert.Equal("trigger-zone", anchor.Kind);
+        Assert.Equal(100, (int)(anchor.X ?? 0));
+        Assert.Equal(200, (int)(anchor.Y ?? 0));
+        Assert.Equal(500, (int)(anchor.Radius ?? 0));
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
 static string CreateTempRoot()
 {
     var root = Path.Combine(Path.GetTempPath(), "DcsWarLauncherTests", Guid.NewGuid().ToString("N"));
@@ -568,7 +605,7 @@ static string CreateTempRoot()
 static void CreateMinimalMiz(string path)
 {
     using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
-    AddZipEntry(archive, "mission", "mission = {\n\t[\"trig\"] = {\n\t\t[\"actions\"] = {},\n\t\t[\"events\"] = {},\n\t\t[\"custom\"] = {},\n\t\t[\"func\"] = {},\n\t\t[\"flag\"] = {},\n\t\t[\"conditions\"] = {},\n\t\t[\"customStartup\"] = {},\n\t\t[\"funcStartup\"] = {},\n\t},\n\t[\"descriptionText\"] = \"Template briefing\",\n\t[\"trigrules\"] = {},\n}");
+    AddZipEntry(archive, "mission", "mission = {\n\t[\"trig\"] = {\n\t\t[\"actions\"] = {},\n\t\t[\"events\"] = {},\n\t\t[\"custom\"] = {},\n\t\t[\"func\"] = {},\n\t\t[\"flag\"] = {},\n\t\t[\"conditions\"] = {},\n\t\t[\"customStartup\"] = {},\n\t\t[\"funcStartup\"] = {},\n\t},\n\t[\"triggers\"] = {\n\t\t[\"zones\"] = {\n\t\t\t[1] = {\n\t\t\t\t[\"y\"] = 200,\n\t\t\t\t[\"x\"] = 100,\n\t\t\t\t[\"name\"] = \"WL_OBJ_KUTAISI_BLUE\",\n\t\t\t\t[\"radius\"] = 500,\n\t\t\t},\n\t\t\t[2] = {\n\t\t\t\t[\"y\"] = 300,\n\t\t\t\t[\"x\"] = 150,\n\t\t\t\t[\"name\"] = \"WL_FRONT_01\",\n\t\t\t\t[\"radius\"] = 700,\n\t\t\t},\n\t\t\t[3] = {\n\t\t\t\t[\"y\"] = 400,\n\t\t\t\t[\"x\"] = 200,\n\t\t\t\t[\"name\"] = \"WL_OBJ_KRASNODAR_BLUE\",\n\t\t\t\t[\"radius\"] = 500,\n\t\t\t},\n\t\t\t[4] = {\n\t\t\t\t[\"y\"] = 500,\n\t\t\t\t[\"x\"] = 250,\n\t\t\t\t[\"name\"] = \"WL_AIRBASE_KUTAISI\",\n\t\t\t\t[\"radius\"] = 1000,\n\t\t\t},\n\t\t\t[5] = {\n\t\t\t\t[\"y\"] = 550,\n\t\t\t\t[\"x\"] = 300,\n\t\t\t\t[\"name\"] = \"WL_HELI_BASE_KUTAISI_BLUE\",\n\t\t\t\t[\"radius\"] = 800,\n\t\t\t},\n\t\t},\n\t},\n\t[\"descriptionText\"] = \"Template briefing\",\n\t[\"trigrules\"] = {},\n}");
     AddZipEntry(archive, "warehouses", "warehouses = {}");
     AddZipEntry(archive, "options", "options = {}");
     AddZipEntry(archive, "theatre", "Caucasus");

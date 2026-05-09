@@ -27,6 +27,12 @@
           Mission
           <input id="missionPath" type="text" placeholder="Leer lassen fuer Default-Mission">
         </label>
+        <div class="generated-mission">
+          <span>Letzte Turn-MIZ</span>
+          <strong id="generatedMissionName">-</strong>
+          <small id="generatedMissionMeta">-</small>
+          <button id="useGeneratedMissionBtn" class="secondary" type="button">Uebernehmen</button>
+        </div>
         <div class="actions">
           <button id="startBtn">Start</button>
           <button id="stopBtn" class="secondary">Stop</button>
@@ -63,9 +69,11 @@
         </div>
         <div class="campaign-actions">
           <button id="saveStateBtn">State speichern</button>
+          <button id="previewMissionPlanBtn" class="secondary">Mission Plan Vorschau</button>
           <button id="exportMissionPlanBtn" class="secondary">Mission Plan exportieren</button>
           <button id="prepareMissionBtn" class="secondary">Turn-MIZ vorbereiten</button>
         </div>
+        <div id="missionPlanPreview" class="mission-plan-preview"></div>
       </div>
 
       <div class="panel template-panel">
@@ -80,8 +88,10 @@
           <div><span>Client Slots</span><strong id="templateSlots">-</strong></div>
           <div><span>Blue</span><strong id="templateBlueSlots">-</strong></div>
           <div><span>Red</span><strong id="templateRedSlots">-</strong></div>
+          <div><span>WL Anker</span><strong id="templateAnchorCount">-</strong></div>
         </div>
         <div id="templateWarnings" class="template-warnings"></div>
+        <div id="templateAnchors" class="template-anchors"></div>
         <div id="templateGroups" class="template-groups"></div>
       </div>
     </section>

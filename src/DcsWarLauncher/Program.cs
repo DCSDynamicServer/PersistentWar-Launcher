@@ -101,6 +101,24 @@ app.MapPost("/api/mission/export-plan", async (HttpContext context, StateStore s
     return Results.Ok(result);
 });
 
+app.MapGet("/api/mission/preview-plan", async (HttpContext context, StateStore store, MissionPlanExporter exporter) =>
+{
+    if (!IsAuthorized(context, app.Configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    var state = await store.LoadAsync();
+    var result = exporter.Preview(state);
+    return Results.Ok(result);
+});
+
+app.MapGet("/api/mission/generated/latest", (MissionPlanExporter exporter) =>
+{
+    var result = exporter.GetLatestGeneratedMission();
+    return Results.Ok(result);
+});
+
 app.MapPost("/api/mission/prepare", async (HttpContext context, StateStore store, MissionPlanExporter exporter) =>
 {
     if (!IsAuthorized(context, app.Configuration))
