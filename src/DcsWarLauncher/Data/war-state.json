@@ -1,66 +1,521 @@
 {
+  "campaignId": "campaign-20260509092927",
+  "campaignName": "Caucasus Persistent War",
   "theater": "Caucasus",
-  "turn": 1,
+  "schemaVersion": 1,
+  "turn": 43,
   "phase": "Planning",
   "turnDurationHours": 6,
-  "currentTurnStartedUtc": "2026-05-06T20:30:00+00:00",
-  "currentTurnEndsUtc": "2026-05-07T02:30:00+00:00",
-  "blueSupply": 100,
-  "redSupply": 100,
+  "currentTurnStartedUtc": "2026-05-09T09:29:27.7238703+00:00",
+  "currentTurnEndsUtc": "2026-05-09T15:29:27.7238703+00:00",
+  "blueSupply": 350,
+  "redSupply": 0,
   "objectives": [
     {
       "name": "Gudauta",
       "owner": "blue",
-      "strength": 65
+      "strength": 100
     },
     {
       "name": "Sukhumi",
-      "owner": "contested",
-      "strength": 48
+      "owner": "blue",
+      "strength": 100
     },
     {
       "name": "Senaki",
-      "owner": "red",
-      "strength": 35
+      "owner": "blue",
+      "strength": 100
     },
     {
       "name": "Kutaisi",
-      "owner": "red",
-      "strength": 25
+      "owner": "blue",
+      "strength": 100
+    }
+  ],
+  "airbases": [
+    {
+      "name": "Gudauta",
+      "owner": "blue",
+      "runwayHealth": 100,
+      "fuel": 100,
+      "x": 18,
+      "y": 20,
+      "status": "operational"
+    },
+    {
+      "name": "Sukhumi",
+      "owner": "blue",
+      "runwayHealth": 100,
+      "fuel": 100,
+      "x": 38,
+      "y": 42,
+      "status": "operational"
+    },
+    {
+      "name": "Senaki",
+      "owner": "blue",
+      "runwayHealth": 100,
+      "fuel": 100,
+      "x": 60,
+      "y": 58,
+      "status": "operational"
+    },
+    {
+      "name": "Kutaisi",
+      "owner": "blue",
+      "runwayHealth": 100,
+      "fuel": 100,
+      "x": 78,
+      "y": 70,
+      "status": "operational"
+    }
+  ],
+  "squadrons": [
+    {
+      "name": "11th Fighter Squadron",
+      "coalition": "blue",
+      "aircraft": "F-16C",
+      "homeBase": "Gudauta",
+      "aircraftTotal": 14,
+      "aircraftReady": 0,
+      "pilotReadiness": 0
+    },
+    {
+      "name": "336th Strike Squadron",
+      "coalition": "blue",
+      "aircraft": "F/A-18C",
+      "homeBase": "Gudauta",
+      "aircraftTotal": 12,
+      "aircraftReady": 0,
+      "pilotReadiness": 0
+    },
+    {
+      "name": "159th Guards Fighter",
+      "coalition": "red",
+      "aircraft": "Su-27",
+      "homeBase": "Kutaisi",
+      "aircraftTotal": 16,
+      "aircraftReady": 0,
+      "pilotReadiness": 0
+    },
+    {
+      "name": "368th Attack Regiment",
+      "coalition": "red",
+      "aircraft": "Su-25T",
+      "homeBase": "Senaki",
+      "aircraftTotal": 14,
+      "aircraftReady": 0,
+      "pilotReadiness": 0
+    }
+  ],
+  "missionPackages": [],
+  "groundUnits": [
+    {
+      "name": "1st Blue Armored",
+      "coalition": "blue",
+      "type": "armor",
+      "location": "Sukhumi",
+      "strength": 0,
+      "supply": 0,
+      "readiness": 1,
+      "posture": "reorganizing"
+    },
+    {
+      "name": "2nd Blue Mechanized",
+      "coalition": "blue",
+      "type": "mechanized",
+      "location": "Gudauta",
+      "strength": 0,
+      "supply": 0,
+      "readiness": 1,
+      "posture": "reorganizing"
+    },
+    {
+      "name": "31st Red Guards",
+      "coalition": "red",
+      "type": "armor",
+      "location": "Senaki",
+      "strength": 0,
+      "supply": 0,
+      "readiness": 1,
+      "posture": "reorganizing"
+    },
+    {
+      "name": "45th Red Motor Rifle",
+      "coalition": "red",
+      "type": "mechanized",
+      "location": "Sukhumi",
+      "strength": 0,
+      "supply": 0,
+      "readiness": 1,
+      "posture": "reorganizing"
+    }
+  ],
+  "supplyDepots": [
+    {
+      "name": "Gudauta Depot",
+      "coalition": "blue",
+      "location": "Gudauta",
+      "stores": 2,
+      "x": 18,
+      "y": 28,
+      "status": "critical"
+    },
+    {
+      "name": "Sukhumi Forward Depot",
+      "coalition": "blue",
+      "location": "Sukhumi",
+      "stores": 2,
+      "x": 36,
+      "y": 48,
+      "status": "critical"
+    },
+    {
+      "name": "Senaki Depot",
+      "coalition": "red",
+      "location": "Senaki",
+      "stores": 1,
+      "x": 61,
+      "y": 64,
+      "status": "critical"
+    },
+    {
+      "name": "Kutaisi Depot",
+      "coalition": "red",
+      "location": "Kutaisi",
+      "stores": 1,
+      "x": 79,
+      "y": 77,
+      "status": "critical"
+    }
+  ],
+  "factories": [
+    {
+      "name": "Blue Aircraft Works",
+      "coalition": "blue",
+      "location": "Gudauta",
+      "outputType": "aircraft",
+      "health": 100,
+      "production": 3,
+      "status": "active"
+    },
+    {
+      "name": "Blue Army Depot",
+      "coalition": "blue",
+      "location": "Gudauta",
+      "outputType": "ground",
+      "health": 100,
+      "production": 5,
+      "status": "active"
+    },
+    {
+      "name": "Red Aviation Plant",
+      "coalition": "red",
+      "location": "Kutaisi",
+      "outputType": "aircraft",
+      "health": 77,
+      "production": 2,
+      "status": "active"
+    },
+    {
+      "name": "Red Vehicle Plant",
+      "coalition": "red",
+      "location": "Kutaisi",
+      "outputType": "ground",
+      "health": 70,
+      "production": 3,
+      "status": "active"
     }
   ],
   "frontlines": [
     {
       "name": "Gudauta-Sukhumi",
       "startX": 20,
-      "startY": 42,
-      "endX": 45,
-      "endY": 48,
-      "momentum": "static"
+      "startY": 0,
+      "endX": 42,
+      "endY": 0,
+      "momentum": "blue-advancing"
     },
     {
       "name": "Sukhumi-Senaki",
       "startX": 45,
-      "startY": 52,
-      "endX": 68,
-      "endY": 62,
-      "momentum": "red-advancing"
+      "startY": 3,
+      "endX": 62,
+      "endY": 0,
+      "momentum": "blue-advancing"
+    },
+    {
+      "name": "Senaki-Kutaisi",
+      "startX": 70,
+      "startY": 0,
+      "endX": 82,
+      "endY": 3,
+      "momentum": "blue-advancing"
     }
   ],
   "aiPlan": [
     {
       "coalition": "blue",
-      "task": "Build pressure on contested airfields",
-      "target": "Sukhumi",
-      "confidence": 62
+      "task": "Exploit breakthrough",
+      "target": "Gudauta",
+      "confidence": 65
     },
     {
       "coalition": "red",
-      "task": "Interdict blue supply routes",
-      "target": "Senaki",
-      "confidence": 58
+      "task": "Delay enemy advance and strike supply",
+      "target": "Gudauta",
+      "confidence": 45
     }
   ],
-  "lastBattleReport": null,
-  "updatedUtc": "2026-05-06T20:30:00+00:00"
+  "turnHistory": [
+    {
+      "turn": 23,
+      "completedUtc": "2026-05-08T20:24:07.321919+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 24,
+      "completedUtc": "2026-05-08T20:24:07.5277533+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 25,
+      "completedUtc": "2026-05-08T20:24:07.7147595+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 26,
+      "completedUtc": "2026-05-08T20:24:07.9165099+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 27,
+      "completedUtc": "2026-05-08T20:24:08.1160007+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 28,
+      "completedUtc": "2026-05-08T20:24:08.3227835+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 29,
+      "completedUtc": "2026-05-08T20:24:08.5307017+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 30,
+      "completedUtc": "2026-05-08T20:24:08.7308144+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 31,
+      "completedUtc": "2026-05-08T20:24:08.9425074+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 32,
+      "completedUtc": "2026-05-08T20:24:09.155568+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 33,
+      "completedUtc": "2026-05-08T20:24:09.3558263+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 34,
+      "completedUtc": "2026-05-08T20:24:09.5500549+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 35,
+      "completedUtc": "2026-05-08T20:24:09.7567079+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 36,
+      "completedUtc": "2026-05-08T20:24:09.9740263+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 37,
+      "completedUtc": "2026-05-08T20:24:10.1766066+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 38,
+      "completedUtc": "2026-05-08T20:24:27.5522612+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 39,
+      "completedUtc": "2026-05-08T20:25:10.3979779+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 40,
+      "completedUtc": "2026-05-08T20:25:21.5455916+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 41,
+      "completedUtc": "2026-05-08T20:25:22.8628947+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 42,
+      "completedUtc": "2026-05-09T09:29:27.7238703+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    }
+  ],
+  "lastBattleReport": {
+    "blueMissionSuccess": 10,
+    "redMissionSuccess": 8,
+    "blueLosses": 4,
+    "redLosses": 6,
+    "airSuperiority": 3
+  },
+  "createdUtc": "2026-05-08T20:25:22.8628947+00:00",
+  "updatedUtc": "2026-05-09T09:29:27.7238703+00:00"
 }

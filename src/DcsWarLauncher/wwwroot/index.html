@@ -61,7 +61,28 @@
           <label>Blue Supply <input id="blueSupply" type="number" min="0" max="999"></label>
           <label>Red Supply <input id="redSupply" type="number" min="0" max="999"></label>
         </div>
-        <button id="saveStateBtn" class="wide">State speichern</button>
+        <div class="campaign-actions">
+          <button id="saveStateBtn">State speichern</button>
+          <button id="exportMissionPlanBtn" class="secondary">Mission Plan exportieren</button>
+          <button id="prepareMissionBtn" class="secondary">Turn-MIZ vorbereiten</button>
+        </div>
+      </div>
+
+      <div class="panel template-panel">
+        <div class="panel-heading">
+          <h2>Mission Template</h2>
+          <button id="inspectTemplateBtn" class="secondary">Pruefen</button>
+        </div>
+        <div class="template-meta">
+          <div><span>Datei</span><strong id="templateFile">-</strong></div>
+          <div><span>Theater</span><strong id="templateTheater">-</strong></div>
+          <div><span>Status</span><strong id="templateStatus">-</strong></div>
+          <div><span>Client Slots</span><strong id="templateSlots">-</strong></div>
+          <div><span>Blue</span><strong id="templateBlueSlots">-</strong></div>
+          <div><span>Red</span><strong id="templateRedSlots">-</strong></div>
+        </div>
+        <div id="templateWarnings" class="template-warnings"></div>
+        <div id="templateGroups" class="template-groups"></div>
       </div>
     </section>
 

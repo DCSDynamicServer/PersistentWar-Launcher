@@ -1,6 +1,7 @@
 using DcsWarLauncher.Campaign;
 using DcsWarLauncher.Domain;
 using DcsWarLauncher.Infrastructure;
+using DcsWarLauncher.Mission;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
 
@@ -30,7 +31,10 @@ var tests = new (string Name, Action Test)[]
     ("State store recovers corrupt save", StateStoreRecoversCorruptSave),
     ("State store prunes old backups", StateStorePrunesOldBackups),
     ("Turn engine appends battle report history", TurnEngineAppendsBattleReportHistory),
-    ("Turn history keeps latest twenty entries", TurnHistoryKeepsLatestTwentyEntries)
+    ("Turn history keeps latest twenty entries", TurnHistoryKeepsLatestTwentyEntries),
+    ("Mission plan exporter writes campaign plan", MissionPlanExporterWritesCampaignPlan),
+    ("Mission plan exporter prepares mission copy", MissionPlanExporterPreparesMissionCopy),
+    ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
 };
 
 var failures = new List<string>();
@@ -358,7 +362,7 @@ static void NormalizeFillsCampaignMetadata()
     var normalized = state.Normalize();
 
     Assert.True(!string.IsNullOrWhiteSpace(normalized.CampaignId), "Expected campaign id.");
-    Assert.Equal("Caucasus Persistent War", normalized.CampaignName);
+    Assert.Equal("Russia vs Georgia/NATO", normalized.CampaignName);
     Assert.Equal("Caucasus", normalized.Theater);
     Assert.True(normalized.CreatedUtc != default, "Expected created timestamp.");
     Assert.True(normalized.UpdatedUtc != default, "Expected updated timestamp.");
@@ -469,6 +473,80 @@ static void TurnHistoryKeepsLatestTwentyEntries()
     Assert.Equal(20, state.TurnHistory.Count);
     Assert.Equal(6, state.TurnHistory[0].Turn);
     Assert.Equal(25, state.TurnHistory[^1].Turn);
+}
+
+static void MissionPlanExporterWritesCampaignPlan()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var exporter = new MissionPlanExporter(new TestEnvironment(root));
+        var state = WarState.CreateDefault() with
+        {
+            CampaignId = "test-campaign",
+            CampaignName = "Test Campaign"
+        };
+
+        var result = exporter.ExportAsync(state).GetAwaiter().GetResult();
+
+        Assert.True(File.Exists(result.FilePath), "Expected exported mission plan file.");
+        Assert.Equal(state.Turn, result.Turn);
+        Assert.Equal(state.MissionPackages.Count, result.PackageCount);
+        Assert.Equal(state.GroundUnits.Count, result.GroundGroupCount);
+        Assert.Equal(state.SupplyDepots.Count + state.Factories.Count, result.TargetCount);
+
+        var json = File.ReadAllText(result.FilePath);
+        Assert.True(json.Contains("_CLIENT_"), "Expected player slots policy in export.");
+        Assert.True(json.Contains("frontlineMarkers"), "Expected frontline marker plans.");
+        Assert.True(json.Contains("flightGroups"), "Expected flight group plans.");
+        Assert.True(json.Contains("target-kutaisi-depot"), "Expected stable target ids.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionPlanExporterPreparesMissionCopy()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var templatePath = Path.Combine(root, "Data", "Templates");
+        Directory.CreateDirectory(templatePath);
+        File.WriteAllText(Path.Combine(templatePath, "template-test.miz"), "template");
+        var exporter = new MissionPlanExporter(new TestEnvironment(root));
+        var state = WarState.CreateDefault() with { CampaignId = "test-campaign" };
+
+        var result = exporter.PrepareMissionAsync(state).GetAwaiter().GetResult();
+
+        Assert.True(File.Exists(result.MizFilePath), "Expected prepared .miz copy.");
+        Assert.True(File.Exists(result.MissionPlanFilePath), "Expected mission plan sidecar.");
+        Assert.Equal("template-test.miz", result.TemplateFileName);
+        Assert.Equal(state.Turn, result.Turn);
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionTemplateInspectorReportsMissingTemplate()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var inspector = new MissionTemplateInspector(new TestEnvironment(root));
+        var result = inspector.InspectLatest();
+
+        Assert.True(!result.IsReadable, "Expected missing template to be unreadable.");
+        Assert.Equal(0, result.ClientSlotCount);
+        Assert.True(result.Warnings.Any(warning => warning.Contains("No .miz template", StringComparison.Ordinal)), "Expected missing template warning.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
 }
 
 static string CreateTempRoot()

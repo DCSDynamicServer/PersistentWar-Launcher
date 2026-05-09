@@ -151,6 +151,13 @@ button.wide {
   margin-top: 16px;
 }
 
+.campaign-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
 .message {
   min-height: 22px;
   margin-bottom: 0;
@@ -164,6 +171,7 @@ button.wide {
 }
 
 .war-meta div,
+.template-meta div,
 .scheduler-grid div {
   background: var(--panel-soft);
   border: 1px solid var(--line);
@@ -172,6 +180,7 @@ button.wide {
 }
 
 .war-meta span,
+.template-meta span,
 .scheduler-grid span {
   display: block;
   color: var(--muted);
@@ -179,9 +188,24 @@ button.wide {
 }
 
 .war-meta strong,
+.template-meta strong,
 .scheduler-grid strong {
   display: block;
   margin-top: 6px;
+}
+
+.template-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.ok-text {
+  color: var(--green);
+}
+
+.bad-text {
+  color: var(--red);
 }
 
 .scheduler-grid {
@@ -209,7 +233,8 @@ button.wide {
 .squadrons-panel,
 .ground-panel,
 .depots-panel,
-.factories-panel {
+.factories-panel,
+.template-panel {
   margin-top: 18px;
 }
 
@@ -387,6 +412,7 @@ button.wide {
 .ai-plan,
 .mission-packages,
 .turn-history,
+.template-groups,
 .squadrons,
 .ground-units,
 .supply-depots,
@@ -443,6 +469,47 @@ button.wide {
 .empty-state {
   margin: 0;
   color: var(--muted);
+}
+
+.template-warnings {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.template-warnings p {
+  margin: 0;
+  border: 1px solid rgba(243, 188, 79, .35);
+  border-radius: 6px;
+  background: rgba(243, 188, 79, .08);
+  color: var(--gold);
+  padding: 10px 12px;
+}
+
+.template-groups {
+  margin-top: 12px;
+}
+
+.template-group {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 12px;
+}
+
+.template-group.blue {
+  border-color: rgba(71, 163, 255, .45);
+}
+
+.template-group.red {
+  border-color: rgba(255, 103, 94, .45);
+}
+
+.template-group span,
+.template-group small {
+  display: block;
+  color: var(--muted);
+  margin-top: 6px;
 }
 
 .ai-order,
@@ -564,7 +631,9 @@ button.wide {
   }
 
   .war-meta,
+  .template-meta,
   .supply,
+  .campaign-actions,
   .battle-report {
     grid-template-columns: 1fr;
   }
