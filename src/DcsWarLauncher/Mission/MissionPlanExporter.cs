@@ -22,7 +22,7 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
         Directory.CreateDirectory(_exportPath);
 
         var generatedUtc = DateTimeOffset.UtcNow;
-        var plan = BuildPlan(state, generatedUtc);
+        var plan = BuildPlan(state, generatedUtc, InspectLatestTemplateAnchors());
         var safeCampaignId = SanitizeFileName(state.CampaignId);
         var fileName = $"{safeCampaignId}-turn-{state.Turn:D4}-mission-plan.json";
         var filePath = Path.Combine(_exportPath, fileName);
@@ -38,6 +38,31 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
             plan.FlightGroups.Count,
             plan.GroundGroups.Count,
             plan.SupplyTargets.Count + plan.FactoryTargets.Count);
+    }
+
+    public MissionPlan Preview(WarState state)
+    {
+        state = state.Normalize();
+        return BuildPlan(state, DateTimeOffset.UtcNow, InspectLatestTemplateAnchors());
+    }
+
+    public GeneratedMissionStatus GetLatestGeneratedMission()
+    {
+        var file = Directory.Exists(_generatedPath)
+            ? Directory.GetFiles(_generatedPath, "*.miz")
+                .Select(path => new FileInfo(path))
+                .OrderByDescending(candidate => candidate.LastWriteTimeUtc)
+                .FirstOrDefault()
+            : null;
+
+        return file is null
+            ? new GeneratedMissionStatus(null, null, null, null, false)
+            : new GeneratedMissionStatus(
+                file.Name,
+                file.FullName,
+                file.Length,
+                file.LastWriteTimeUtc,
+                true);
     }
 
     public async Task<PreparedMissionResult> PrepareMissionAsync(WarState state)
@@ -64,7 +89,10 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
             template.Name);
     }
 
-    private static MissionPlan BuildPlan(WarState state, DateTimeOffset generatedUtc)
+    private static MissionPlan BuildPlan(
+        WarState state,
+        DateTimeOffset generatedUtc,
+        IReadOnlyCollection<TemplateAnchorInspection> anchors)
     {
         var frontlineMarkers = state.Frontlines
             .Select(segment => new FrontlineMarkerPlan(
@@ -133,6 +161,7 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
                 "PatchTemplate",
                 "_CLIENT_",
                 "Client/player slot groups are preserved from the template mission."),
+            BuildTemplateBindings(state, anchors),
             state.Airbases,
             state.Objectives,
             frontlineMarkers,
@@ -140,6 +169,101 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
             groundGroups,
             supplyTargets,
             factoryTargets);
+    }
+
+    private static TemplateBindings BuildTemplateBindings(
+        WarState state,
+        IReadOnlyCollection<TemplateAnchorInspection> anchors)
+    {
+        var objectiveAnchors = new List<ObjectiveAnchorBinding>();
+        var missingObjectiveAnchors = new List<MissingObjectiveAnchor>();
+        foreach (var objective in state.Objectives)
+        {
+            foreach (var coalition in new[] { "blue", "red" })
+            {
+                var expectedAnchorNames = ObjectiveAnchorNames(objective.Name, coalition).ToList();
+                var anchor = expectedAnchorNames
+                    .Select(name => anchors.FirstOrDefault(candidate =>
+                        candidate.Name.Equals(name, StringComparison.OrdinalIgnoreCase) &&
+                        candidate.X is not null &&
+                        candidate.Y is not null &&
+                        candidate.Radius is not null))
+                    .FirstOrDefault(candidate => candidate is not null);
+
+                if (anchor is null)
+                {
+                    missingObjectiveAnchors.Add(new MissingObjectiveAnchor(objective.Name, coalition, expectedAnchorNames));
+                    continue;
+                }
+
+                objectiveAnchors.Add(new ObjectiveAnchorBinding(
+                        objective.Name,
+                        coalition,
+                        anchor.Name,
+                        anchor.X!.Value,
+                        anchor.Y!.Value,
+                        anchor.Radius!.Value));
+            }
+        }
+
+        var frontAnchors = anchors
+            .Where(anchor =>
+                anchor.Name.StartsWith("WL_FRONT_", StringComparison.OrdinalIgnoreCase) &&
+                anchor.X is not null &&
+                anchor.Y is not null &&
+                anchor.Radius is not null)
+            .Select(anchor => new FrontAnchorBinding(
+                anchor.Name,
+                ParseAnchorSequence(anchor.Name),
+                anchor.X!.Value,
+                anchor.Y!.Value,
+                anchor.Radius!.Value))
+            .OrderBy(anchor => anchor.Sequence)
+            .ThenBy(anchor => anchor.AnchorName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var airbaseAnchors = new List<AirbaseAnchorBinding>();
+        var missingAirbaseAnchors = new List<MissingAirbaseAnchor>();
+        foreach (var airbase in state.Airbases)
+        {
+            foreach (var expectedGroup in AirbaseAnchorNames(airbase.Name).GroupBy(expected => expected.Type))
+            {
+                var expectedNames = expectedGroup.Select(expected => expected.Name).ToList();
+                var anchor = expectedNames
+                    .Select(name => anchors.FirstOrDefault(candidate =>
+                        candidate.Name.Equals(name, StringComparison.OrdinalIgnoreCase) &&
+                        candidate.X is not null &&
+                        candidate.Y is not null &&
+                        candidate.Radius is not null))
+                    .FirstOrDefault(candidate => candidate is not null);
+
+                if (anchor is null)
+                {
+                    missingAirbaseAnchors.Add(new MissingAirbaseAnchor(airbase.Name, expectedGroup.Key, expectedNames));
+                    continue;
+                }
+
+                airbaseAnchors.Add(new AirbaseAnchorBinding(
+                        airbase.Name,
+                        expectedGroup.Key,
+                        anchor.Name,
+                        anchor.X!.Value,
+                        anchor.Y!.Value,
+                        anchor.Radius!.Value));
+            }
+        }
+
+        airbaseAnchors = airbaseAnchors
+            .OrderBy(anchor => anchor.Airbase, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(anchor => anchor.AnchorType, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return new TemplateBindings(
+            objectiveAnchors,
+            airbaseAnchors,
+            frontAnchors,
+            missingObjectiveAnchors,
+            missingAirbaseAnchors);
     }
 
     private static string SanitizeFileName(string value)
@@ -173,14 +297,68 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
 
     private FileInfo GetLatestTemplate()
     {
-        var template = Directory.Exists(_templatePath)
+        var template = GetLatestTemplateOrNull();
+
+        return template ?? throw new FileNotFoundException("No .miz template found.", _templatePath);
+    }
+
+    private FileInfo? GetLatestTemplateOrNull() =>
+        Directory.Exists(_templatePath)
             ? Directory.GetFiles(_templatePath, "*.miz")
                 .Select(path => new FileInfo(path))
                 .OrderByDescending(file => file.LastWriteTimeUtc)
                 .FirstOrDefault()
             : null;
 
-        return template ?? throw new FileNotFoundException("No .miz template found.", _templatePath);
+    private IReadOnlyCollection<TemplateAnchorInspection> InspectLatestTemplateAnchors()
+    {
+        var template = GetLatestTemplateOrNull();
+        return template is null
+            ? []
+            : new MissionTemplateInspector(environment).Inspect(template.FullName).Anchors;
+    }
+
+    private static string ToAnchorToken(string value) =>
+        new(
+            value.Trim()
+                .ToUpperInvariant()
+                .Select(character => char.IsLetterOrDigit(character) ? character : '_')
+                .ToArray());
+
+    private static IEnumerable<string> ObjectiveAnchorNames(string objectiveName, string coalition)
+    {
+        var coalitionToken = coalition.ToUpperInvariant();
+        yield return $"WL_OBJ_{ToAnchorToken(objectiveName)}_{coalitionToken}";
+
+        if (objectiveName.Equals("Krasnodar Center", StringComparison.OrdinalIgnoreCase))
+        {
+            yield return $"WL_OBJ_KRASNODAR_{coalitionToken}";
+        }
+    }
+
+    private static IEnumerable<(string Type, string Name)> AirbaseAnchorNames(string airbaseName)
+    {
+        var token = ToAnchorToken(airbaseName);
+        yield return ("airbase", $"WL_AIRBASE_{token}");
+        yield return ("heli-blue", $"WL_HELI_BASE_{token}_BLUE");
+        yield return ("heli-red", $"WL_HELI_BASE_{token}_RED");
+        yield return ("farp-blue", $"WL_FARP_{token}_BLUE");
+        yield return ("farp-red", $"WL_FARP_{token}_RED");
+
+        if (airbaseName.Equals("Krasnodar Center", StringComparison.OrdinalIgnoreCase))
+        {
+            yield return ("airbase", "WL_AIRBASE_KRASNODAR");
+            yield return ("heli-blue", "WL_HELI_BASE_KRASNODAR_BLUE");
+            yield return ("heli-red", "WL_HELI_BASE_KRASNODAR_RED");
+            yield return ("farp-blue", "WL_FARP_KRASNODAR_BLUE");
+            yield return ("farp-red", "WL_FARP_KRASNODAR_RED");
+        }
+    }
+
+    private static int ParseAnchorSequence(string value)
+    {
+        var digits = new string(value.Reverse().TakeWhile(char.IsDigit).Reverse().ToArray());
+        return int.TryParse(digits, out var sequence) ? sequence : int.MaxValue;
     }
 
     private static async Task EmbedMissionPlanAsync(string mizFilePath, string missionPlanFilePath)

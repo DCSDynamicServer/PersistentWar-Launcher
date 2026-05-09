@@ -486,12 +486,44 @@ button.wide {
   padding: 10px 12px;
 }
 
+.generated-mission {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 10px 12px;
+}
+
+.generated-mission span,
+.generated-mission small {
+  color: var(--muted);
+}
+
+.generated-mission button {
+  width: fit-content;
+}
+
+.template-anchors,
 .template-groups {
   margin-top: 12px;
 }
 
+.template-anchors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
 .template-group {
   border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 12px;
+}
+
+.template-anchor {
+  border: 1px solid rgba(243, 188, 79, .45);
   border-radius: 8px;
   background: var(--panel-soft);
   padding: 12px;
@@ -506,10 +538,89 @@ button.wide {
 }
 
 .template-group span,
-.template-group small {
+.template-group small,
+.template-anchor span,
+.template-anchor small {
   display: block;
   color: var(--muted);
   margin-top: 6px;
+}
+
+.mission-plan-preview {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.preview-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.preview-summary span {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  color: var(--muted);
+  padding: 10px 12px;
+}
+
+.preview-summary strong {
+  display: block;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.preview-grid h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.preview-list {
+  display: grid;
+  gap: 8px;
+}
+
+.preview-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 10px 12px;
+}
+
+.preview-item.blue {
+  border-color: rgba(71, 163, 255, .45);
+}
+
+.preview-item.red {
+  border-color: rgba(255, 103, 94, .45);
+}
+
+.preview-item.front {
+  border-color: rgba(243, 188, 79, .45);
+}
+
+.preview-item.airbase {
+  border-color: rgba(111, 214, 255, .45);
+}
+
+.preview-item.missing {
+  border-color: rgba(243, 188, 79, .65);
+  background: rgba(243, 188, 79, .07);
+}
+
+.preview-item span,
+.preview-item small {
+  display: block;
+  color: var(--muted);
+  margin-top: 5px;
 }
 
 .ai-order,

@@ -2,6 +2,9 @@ const els = {
   serverPill: document.querySelector("#serverPill"),
   token: document.querySelector("#token"),
   missionPath: document.querySelector("#missionPath"),
+  generatedMissionName: document.querySelector("#generatedMissionName"),
+  generatedMissionMeta: document.querySelector("#generatedMissionMeta"),
+  useGeneratedMissionBtn: document.querySelector("#useGeneratedMissionBtn"),
   startBtn: document.querySelector("#startBtn"),
   stopBtn: document.querySelector("#stopBtn"),
   actionMessage: document.querySelector("#actionMessage"),
@@ -27,6 +30,7 @@ const els = {
   airSuperiority: document.querySelector("#airSuperiority"),
   advanceTurnBtn: document.querySelector("#advanceTurnBtn"),
   saveStateBtn: document.querySelector("#saveStateBtn"),
+  previewMissionPlanBtn: document.querySelector("#previewMissionPlanBtn"),
   exportMissionPlanBtn: document.querySelector("#exportMissionPlanBtn"),
   prepareMissionBtn: document.querySelector("#prepareMissionBtn"),
   inspectTemplateBtn: document.querySelector("#inspectTemplateBtn"),
@@ -37,8 +41,11 @@ const els = {
   templateSlots: document.querySelector("#templateSlots"),
   templateBlueSlots: document.querySelector("#templateBlueSlots"),
   templateRedSlots: document.querySelector("#templateRedSlots"),
+  templateAnchorCount: document.querySelector("#templateAnchorCount"),
   templateWarnings: document.querySelector("#templateWarnings"),
+  templateAnchors: document.querySelector("#templateAnchors"),
   templateGroups: document.querySelector("#templateGroups"),
+  missionPlanPreview: document.querySelector("#missionPlanPreview"),
   objectives: document.querySelector("#objectives"),
   frontlineMap: document.querySelector("#frontlineMap"),
   aiPlan: document.querySelector("#aiPlan"),
@@ -51,6 +58,7 @@ const els = {
 };
 
 let currentState = null;
+let latestGeneratedMission = null;
 
 function authHeaders() {
   return {
@@ -82,6 +90,39 @@ async function loadScheduler() {
     ? new Date(scheduler.lastRunUtc).toLocaleString()
     : "-";
   els.schedulerMessage.textContent = scheduler.lastMessage;
+}
+
+async function loadGeneratedMission() {
+  const response = await fetch("/api/mission/generated/latest");
+  latestGeneratedMission = await response.json();
+
+  if (!latestGeneratedMission.exists) {
+    els.generatedMissionName.textContent = "Keine vorbereitet";
+    els.generatedMissionMeta.textContent = "-";
+    els.useGeneratedMissionBtn.disabled = true;
+    return;
+  }
+
+  const modified = latestGeneratedMission.lastModifiedUtc
+    ? new Date(latestGeneratedMission.lastModifiedUtc).toLocaleString()
+    : "-";
+  const sizeKb = latestGeneratedMission.sizeBytes
+    ? `${Math.round(latestGeneratedMission.sizeBytes / 1024)} KB`
+    : "-";
+
+  els.generatedMissionName.textContent = latestGeneratedMission.mizFileName;
+  els.generatedMissionMeta.textContent = `${sizeKb} - ${modified}`;
+  els.useGeneratedMissionBtn.disabled = false;
+}
+
+function useGeneratedMission() {
+  if (!latestGeneratedMission?.exists || !latestGeneratedMission.mizFilePath) {
+    els.actionMessage.textContent = "Keine vorbereitete Turn-MIZ gefunden.";
+    return;
+  }
+
+  els.missionPath.value = latestGeneratedMission.mizFilePath;
+  els.actionMessage.textContent = "Letzte Turn-MIZ als Startmission uebernommen.";
 }
 
 async function loadState() {
@@ -118,6 +159,7 @@ async function loadTemplateInspection() {
 
 function renderTemplateInspection(template) {
   const groups = template.clientGroups || [];
+  const anchors = template.anchors || [];
   const blueSlots = groups
     .filter(group => group.coalition === "blue")
     .reduce((sum, group) => sum + group.clientUnits, 0);
@@ -132,12 +174,26 @@ function renderTemplateInspection(template) {
   els.templateSlots.textContent = template.clientSlotCount ?? 0;
   els.templateBlueSlots.textContent = blueSlots;
   els.templateRedSlots.textContent = redSlots;
+  els.templateAnchorCount.textContent = anchors.length;
 
   els.templateWarnings.innerHTML = "";
   for (const warning of template.warnings || []) {
     const item = document.createElement("p");
     item.textContent = warning;
     els.templateWarnings.appendChild(item);
+  }
+
+  els.templateAnchors.innerHTML = "";
+  for (const anchor of anchors) {
+    const item = document.createElement("article");
+    item.className = "template-anchor";
+    const hasCoordinates = Number.isFinite(anchor.x) && Number.isFinite(anchor.y);
+    item.innerHTML = `
+      <strong>${anchor.name}</strong>
+      <span>${anchor.kind}</span>
+      <small>${hasCoordinates ? `x ${Math.round(anchor.x)} / y ${Math.round(anchor.y)}` : "keine Koordinaten erkannt"}</small>
+    `;
+    els.templateAnchors.appendChild(item);
   }
 
   els.templateGroups.innerHTML = "";
@@ -463,6 +519,119 @@ async function advanceTurn() {
   await loadState();
 }
 
+async function previewMissionPlan() {
+  els.actionMessage.textContent = "Lade Mission Plan Vorschau...";
+  const response = await fetch("/api/mission/preview-plan", {
+    headers: authHeaders()
+  });
+
+  const plan = await response.json().catch(() => null);
+  if (!response.ok || !plan) {
+    els.actionMessage.textContent = "Mission Plan Vorschau konnte nicht geladen werden.";
+    return;
+  }
+
+  renderMissionPlanPreview(plan);
+  els.actionMessage.textContent = `Mission Plan Vorschau: Turn ${plan.turn}`;
+}
+
+function renderMissionPlanPreview(plan) {
+  const bindings = plan.templateBindings || {};
+  const objectiveAnchors = bindings.objectiveAnchors || [];
+  const airbaseAnchors = bindings.airbaseAnchors || [];
+  const frontAnchors = bindings.frontAnchors || [];
+  const missingObjectiveAnchors = bindings.missingObjectiveAnchors || [];
+  const missingAirbaseAnchors = bindings.missingAirbaseAnchors || [];
+  const missingAnchors = [...missingObjectiveAnchors, ...missingAirbaseAnchors];
+
+  els.missionPlanPreview.innerHTML = `
+    <div class="preview-summary">
+      <span>Objective Bindings <strong>${objectiveAnchors.length}</strong></span>
+      <span>Airbase Bindings <strong>${airbaseAnchors.length}</strong></span>
+      <span>Front Anchors <strong>${frontAnchors.length}</strong></span>
+      <span>Fehlende Anker <strong>${missingAnchors.length}</strong></span>
+      <span>Packages <strong>${(plan.flightGroups || []).length}</strong></span>
+    </div>
+    <div class="preview-grid">
+      <section>
+        <h3>Objectives</h3>
+        <div class="preview-list" id="previewObjectiveAnchors"></div>
+      </section>
+      <section>
+        <h3>Front</h3>
+        <div class="preview-list" id="previewFrontAnchors"></div>
+      </section>
+      <section>
+        <h3>Airbases</h3>
+        <div class="preview-list" id="previewAirbaseAnchors"></div>
+      </section>
+      <section>
+        <h3>Fehlende Anker</h3>
+        <div class="preview-list" id="previewMissingAnchors"></div>
+      </section>
+    </div>
+  `;
+
+  const objectiveList = els.missionPlanPreview.querySelector("#previewObjectiveAnchors");
+  for (const anchor of objectiveAnchors) {
+    const item = document.createElement("article");
+    item.className = `preview-item ${anchor.coalition}`;
+    item.innerHTML = `
+      <strong>${anchor.objective}</strong>
+      <span>${anchor.coalition} - ${anchor.anchorName}</span>
+      <small>x ${Math.round(anchor.x)} / y ${Math.round(anchor.y)}</small>
+    `;
+    objectiveList.appendChild(item);
+  }
+
+  const frontList = els.missionPlanPreview.querySelector("#previewFrontAnchors");
+  for (const anchor of frontAnchors) {
+    const item = document.createElement("article");
+    item.className = "preview-item front";
+    item.innerHTML = `
+      <strong>${anchor.anchorName}</strong>
+      <span>Sequence ${anchor.sequence}</span>
+      <small>x ${Math.round(anchor.x)} / y ${Math.round(anchor.y)}</small>
+    `;
+    frontList.appendChild(item);
+  }
+
+  const airbaseList = els.missionPlanPreview.querySelector("#previewAirbaseAnchors");
+  for (const anchor of airbaseAnchors) {
+    const item = document.createElement("article");
+    item.className = "preview-item airbase";
+    item.innerHTML = `
+      <strong>${anchor.airbase}</strong>
+      <span>${anchor.anchorType} - ${anchor.anchorName}</span>
+      <small>x ${Math.round(anchor.x)} / y ${Math.round(anchor.y)}</small>
+    `;
+    airbaseList.appendChild(item);
+  }
+
+  const missingList = els.missionPlanPreview.querySelector("#previewMissingAnchors");
+  for (const missing of missingObjectiveAnchors) {
+    const item = document.createElement("article");
+    item.className = `preview-item missing ${missing.coalition}`;
+    item.innerHTML = `
+      <strong>${missing.objective}</strong>
+      <span>${missing.coalition}</span>
+      <small>${(missing.expectedAnchorNames || []).join(", ")}</small>
+    `;
+    missingList.appendChild(item);
+  }
+
+  for (const missing of missingAirbaseAnchors) {
+    const item = document.createElement("article");
+    item.className = "preview-item missing airbase";
+    item.innerHTML = `
+      <strong>${missing.airbase}</strong>
+      <span>${missing.anchorType}</span>
+      <small>${(missing.expectedAnchorNames || []).join(", ")}</small>
+    `;
+    missingList.appendChild(item);
+  }
+}
+
 async function exportMissionPlan() {
   els.actionMessage.textContent = "Exportiere Mission Plan...";
   const response = await fetch("/api/mission/export-plan", {
@@ -493,24 +662,29 @@ async function prepareMission() {
   }
 
   els.actionMessage.textContent = `Turn-MIZ vorbereitet: ${result.mizFileName}`;
+  await loadGeneratedMission();
 }
 
 els.startBtn.addEventListener("click", startServer);
 els.stopBtn.addEventListener("click", stopServer);
+els.useGeneratedMissionBtn.addEventListener("click", useGeneratedMission);
 els.advanceTurnBtn.addEventListener("click", advanceTurn);
 els.saveStateBtn.addEventListener("click", saveState);
+els.previewMissionPlanBtn.addEventListener("click", previewMissionPlan);
 els.exportMissionPlanBtn.addEventListener("click", exportMissionPlan);
 els.prepareMissionBtn.addEventListener("click", prepareMission);
 els.inspectTemplateBtn.addEventListener("click", loadTemplateInspection);
 els.refreshBtn.addEventListener("click", async () => {
   await loadStatus();
   await loadScheduler();
+  await loadGeneratedMission();
   await loadState();
   await loadTemplateInspection();
 });
 
 loadStatus();
 loadScheduler();
+loadGeneratedMission();
 loadState();
 loadTemplateInspection();
 setInterval(loadStatus, 5000);
