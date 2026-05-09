@@ -3,41 +3,41 @@
   "campaignName": "Caucasus Persistent War",
   "theater": "Caucasus",
   "schemaVersion": 1,
-  "turn": 43,
+  "turn": 45,
   "phase": "Planning",
   "turnDurationHours": 6,
-  "currentTurnStartedUtc": "2026-05-09T09:29:27.7238703+00:00",
-  "currentTurnEndsUtc": "2026-05-09T15:29:27.7238703+00:00",
-  "blueSupply": 350,
+  "currentTurnStartedUtc": "2026-05-09T15:51:57.2772349+00:00",
+  "currentTurnEndsUtc": "2026-05-09T21:51:57.2772349+00:00",
+  "blueSupply": 366,
   "redSupply": 0,
   "objectives": [
     {
       "name": "Gudauta",
       "owner": "blue",
-      "strength": 100
+      "strength": 86
     },
     {
       "name": "Sukhumi",
       "owner": "blue",
-      "strength": 100
+      "strength": 86
     },
     {
       "name": "Senaki",
       "owner": "blue",
-      "strength": 100
+      "strength": 86
     },
     {
       "name": "Kutaisi",
       "owner": "blue",
-      "strength": 100
+      "strength": 86
     }
   ],
   "airbases": [
     {
       "name": "Gudauta",
       "owner": "blue",
-      "runwayHealth": 100,
-      "fuel": 100,
+      "runwayHealth": 82,
+      "fuel": 64,
       "x": 18,
       "y": 20,
       "status": "operational"
@@ -45,8 +45,8 @@
     {
       "name": "Sukhumi",
       "owner": "blue",
-      "runwayHealth": 100,
-      "fuel": 100,
+      "runwayHealth": 82,
+      "fuel": 64,
       "x": 38,
       "y": 42,
       "status": "operational"
@@ -54,8 +54,8 @@
     {
       "name": "Senaki",
       "owner": "blue",
-      "runwayHealth": 100,
-      "fuel": 100,
+      "runwayHealth": 82,
+      "fuel": 64,
       "x": 60,
       "y": 58,
       "status": "operational"
@@ -63,8 +63,8 @@
     {
       "name": "Kutaisi",
       "owner": "blue",
-      "runwayHealth": 100,
-      "fuel": 100,
+      "runwayHealth": 82,
+      "fuel": 64,
       "x": 78,
       "y": 70,
       "status": "operational"
@@ -195,8 +195,8 @@
       "coalition": "blue",
       "location": "Gudauta",
       "outputType": "aircraft",
-      "health": 100,
-      "production": 3,
+      "health": 92,
+      "production": 2,
       "status": "active"
     },
     {
@@ -204,8 +204,8 @@
       "coalition": "blue",
       "location": "Gudauta",
       "outputType": "ground",
-      "health": 100,
-      "production": 5,
+      "health": 92,
+      "production": 4,
       "status": "active"
     },
     {
@@ -231,67 +231,43 @@
     {
       "name": "Gudauta-Sukhumi",
       "startX": 20,
-      "startY": 0,
+      "startY": 11,
       "endX": 42,
-      "endY": 0,
+      "endY": 17,
       "momentum": "blue-advancing"
     },
     {
       "name": "Sukhumi-Senaki",
       "startX": 45,
-      "startY": 3,
+      "startY": 14,
       "endX": 62,
-      "endY": 0,
+      "endY": 14,
       "momentum": "blue-advancing"
     },
     {
       "name": "Senaki-Kutaisi",
       "startX": 70,
-      "startY": 0,
+      "startY": 17,
       "endX": 82,
-      "endY": 3,
+      "endY": 11,
       "momentum": "blue-advancing"
     }
   ],
   "aiPlan": [
     {
       "coalition": "blue",
-      "task": "Exploit breakthrough",
+      "task": "Rebuild defensive CAP and logistics",
       "target": "Gudauta",
-      "confidence": 65
+      "confidence": 39
     },
     {
       "coalition": "red",
-      "task": "Delay enemy advance and strike supply",
+      "task": "Exploit breakthrough",
       "target": "Gudauta",
-      "confidence": 45
+      "confidence": 71
     }
   ],
   "turnHistory": [
-    {
-      "turn": 23,
-      "completedUtc": "2026-05-08T20:24:07.321919+00:00",
-      "battleReport": {
-        "blueMissionSuccess": 10,
-        "redMissionSuccess": 8,
-        "blueLosses": 4,
-        "redLosses": 6,
-        "airSuperiority": 3
-      },
-      "summary": "Contested turn"
-    },
-    {
-      "turn": 24,
-      "completedUtc": "2026-05-08T20:24:07.5277533+00:00",
-      "battleReport": {
-        "blueMissionSuccess": 10,
-        "redMissionSuccess": 8,
-        "blueLosses": 4,
-        "redLosses": 6,
-        "airSuperiority": 3
-      },
-      "summary": "Contested turn"
-    },
     {
       "turn": 25,
       "completedUtc": "2026-05-08T20:24:07.7147595+00:00",
@@ -507,15 +483,39 @@
         "airSuperiority": 3
       },
       "summary": "Contested turn"
+    },
+    {
+      "turn": 43,
+      "completedUtc": "2026-05-09T10:50:46.7257849+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 8,
+        "blueLosses": 4,
+        "redLosses": 6,
+        "airSuperiority": 3
+      },
+      "summary": "Contested turn"
+    },
+    {
+      "turn": 44,
+      "completedUtc": "2026-05-09T15:51:57.2772349+00:00",
+      "battleReport": {
+        "blueMissionSuccess": 10,
+        "redMissionSuccess": 50,
+        "blueLosses": 4,
+        "redLosses": 0,
+        "airSuperiority": 3
+      },
+      "summary": "Red momentum"
     }
   ],
   "lastBattleReport": {
     "blueMissionSuccess": 10,
-    "redMissionSuccess": 8,
+    "redMissionSuccess": 50,
     "blueLosses": 4,
-    "redLosses": 6,
+    "redLosses": 0,
     "airSuperiority": 3
   },
   "createdUtc": "2026-05-08T20:25:22.8628947+00:00",
-  "updatedUtc": "2026-05-09T09:29:27.7238703+00:00"
+  "updatedUtc": "2026-05-09T15:51:57.2772349+00:00"
 }
