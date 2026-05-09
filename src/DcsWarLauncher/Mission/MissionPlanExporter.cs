@@ -1,4 +1,6 @@
+using System.IO.Compression;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using DcsWarLauncher.Domain;
 
 namespace DcsWarLauncher.Mission;
@@ -50,6 +52,8 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
         File.Copy(template.FullName, mizFilePath, overwrite: true);
 
         var plan = await ExportAsync(state);
+        await EmbedMissionPlanAsync(mizFilePath, plan.FilePath);
+        await PatchMissionBriefingAsync(mizFilePath, state);
         return new PreparedMissionResult(
             mizFileName,
             mizFilePath,
@@ -178,4 +182,85 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
 
         return template ?? throw new FileNotFoundException("No .miz template found.", _templatePath);
     }
+
+    private static async Task EmbedMissionPlanAsync(string mizFilePath, string missionPlanFilePath)
+    {
+        using var archive = ZipFile.Open(mizFilePath, ZipArchiveMode.Update);
+        archive.GetEntry("war-launcher/mission-plan.json")?.Delete();
+        var entry = archive.CreateEntry("war-launcher/mission-plan.json", CompressionLevel.Optimal);
+        await using var entryStream = entry.Open();
+        await using var planStream = File.OpenRead(missionPlanFilePath);
+        await planStream.CopyToAsync(entryStream);
+    }
+
+    private static async Task PatchMissionBriefingAsync(string mizFilePath, WarState state)
+    {
+        using var archive = ZipFile.Open(mizFilePath, ZipArchiveMode.Update);
+        var missionEntry = archive.GetEntry("mission");
+        if (missionEntry is null)
+        {
+            return;
+        }
+
+        string missionText;
+        await using (var stream = missionEntry.Open())
+        using (var reader = new StreamReader(stream))
+        {
+            missionText = await reader.ReadToEndAsync();
+        }
+
+        missionEntry.Delete();
+        var patchedMission = PatchDescriptionText(missionText, BuildBriefingText(state));
+        var newEntry = archive.CreateEntry("mission", CompressionLevel.Optimal);
+        await using var entryStream = newEntry.Open();
+        await using var writer = new StreamWriter(entryStream);
+        await writer.WriteAsync(patchedMission);
+    }
+
+    private static string PatchDescriptionText(string missionText, string briefingText)
+    {
+        var escaped = ToLuaString(briefingText);
+        var replacement = $"[\"descriptionText\"] = {escaped}";
+        var pattern = "\\[\\\"descriptionText\\\"\\]\\s*=\\s*(?:\\\"(?:\\\\.|[^\\\"])*\\\"|\\[\\[.*?\\]\\])";
+        if (Regex.IsMatch(missionText, pattern, RegexOptions.Singleline))
+        {
+            return Regex.Replace(missionText, pattern, replacement, RegexOptions.Singleline);
+        }
+
+        var insertAt = missionText.LastIndexOf('}');
+        return insertAt < 0
+            ? missionText
+            : missionText.Insert(insertAt, $"\n\t{replacement},\n");
+    }
+
+    private static string BuildBriefingText(WarState state)
+    {
+        var objectives = string.Join(", ", state.Objectives.Select(objective => $"{objective.Name}: {objective.Owner} {objective.Strength}%"));
+        var packages = state.MissionPackages.Count == 0
+            ? "No AI packages planned."
+            : string.Join(", ", state.MissionPackages.Select(package => $"{package.Coalition.ToUpperInvariant()} {package.Task} {package.Target}"));
+
+        return $"""
+            DCS Persistent War Launcher
+            Campaign: {state.CampaignName}
+            Theater: {state.Theater}
+            Turn: {state.Turn}
+
+            Player slots are preserved from the template mission.
+
+            Objectives:
+            {objectives}
+
+            Planned AI packages:
+            {packages}
+            """;
+    }
+
+    private static string ToLuaString(string value) =>
+        "\"" + value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\"", "\\\"", StringComparison.Ordinal)
+            .Replace("\r\n", "\\n", StringComparison.Ordinal)
+            .Replace("\n", "\\n", StringComparison.Ordinal)
+            .Replace("\r", "\\n", StringComparison.Ordinal) + "\"";
 }

@@ -4,6 +4,7 @@ using DcsWarLauncher.Infrastructure;
 using DcsWarLauncher.Mission;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
+using System.IO.Compression;
 
 var tests = new (string Name, Action Test)[]
 {
@@ -514,7 +515,7 @@ static void MissionPlanExporterPreparesMissionCopy()
     {
         var templatePath = Path.Combine(root, "Data", "Templates");
         Directory.CreateDirectory(templatePath);
-        File.WriteAllText(Path.Combine(templatePath, "template-test.miz"), "template");
+        CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
         var exporter = new MissionPlanExporter(new TestEnvironment(root));
         var state = WarState.CreateDefault() with { CampaignId = "test-campaign" };
 
@@ -524,6 +525,14 @@ static void MissionPlanExporterPreparesMissionCopy()
         Assert.True(File.Exists(result.MissionPlanFilePath), "Expected mission plan sidecar.");
         Assert.Equal("template-test.miz", result.TemplateFileName);
         Assert.Equal(state.Turn, result.Turn);
+        using var archive = ZipFile.OpenRead(result.MizFilePath);
+        Assert.True(archive.GetEntry("war-launcher/mission-plan.json") is not null, "Expected embedded mission plan.");
+        var missionEntry = archive.GetEntry("mission") ?? throw new InvalidOperationException("Expected mission entry.");
+        using var missionStream = missionEntry.Open();
+        using var reader = new StreamReader(missionStream);
+        var missionText = reader.ReadToEnd();
+        Assert.True(missionText.Contains("DCS Persistent War Launcher", StringComparison.Ordinal), "Expected generated briefing.");
+        Assert.True(missionText.Contains("Player slots are preserved", StringComparison.Ordinal), "Expected player slot briefing note.");
     }
     finally
     {
@@ -554,6 +563,23 @@ static string CreateTempRoot()
     var root = Path.Combine(Path.GetTempPath(), "DcsWarLauncherTests", Guid.NewGuid().ToString("N"));
     Directory.CreateDirectory(root);
     return root;
+}
+
+static void CreateMinimalMiz(string path)
+{
+    using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
+    AddZipEntry(archive, "mission", "mission = {\n\t[\"trig\"] = {\n\t\t[\"actions\"] = {},\n\t\t[\"events\"] = {},\n\t\t[\"custom\"] = {},\n\t\t[\"func\"] = {},\n\t\t[\"flag\"] = {},\n\t\t[\"conditions\"] = {},\n\t\t[\"customStartup\"] = {},\n\t\t[\"funcStartup\"] = {},\n\t},\n\t[\"descriptionText\"] = \"Template briefing\",\n\t[\"trigrules\"] = {},\n}");
+    AddZipEntry(archive, "warehouses", "warehouses = {}");
+    AddZipEntry(archive, "options", "options = {}");
+    AddZipEntry(archive, "theatre", "Caucasus");
+}
+
+static void AddZipEntry(ZipArchive archive, string name, string content)
+{
+    var entry = archive.CreateEntry(name);
+    using var stream = entry.Open();
+    using var writer = new StreamWriter(stream);
+    writer.Write(content);
 }
 
 static class Assert
