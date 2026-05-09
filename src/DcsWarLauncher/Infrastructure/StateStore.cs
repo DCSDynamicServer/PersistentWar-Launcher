@@ -12,8 +12,8 @@ public sealed class StateStore(IWebHostEnvironment environment)
         WriteIndented = true
     };
 
-    private readonly string _path = Path.Combine(environment.ContentRootPath, "Data", "war-state.json");
-    private readonly string _backupPath = Path.Combine(environment.ContentRootPath, "Data", "Backups");
+    private readonly string _path = Path.Combine(DataPathResolver.GetDataRoot(environment), "war-state.json");
+    private readonly string _backupPath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Backups");
 
     public async Task<WarState> LoadAsync()
     {

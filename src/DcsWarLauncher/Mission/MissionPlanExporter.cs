@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using DcsWarLauncher.Domain;
+using DcsWarLauncher.Infrastructure;
 
 namespace DcsWarLauncher.Mission;
 
@@ -12,9 +13,9 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
         WriteIndented = true
     };
 
-    private readonly string _exportPath = Path.Combine(environment.ContentRootPath, "Data", "Exports");
-    private readonly string _templatePath = Path.Combine(environment.ContentRootPath, "Data", "Templates");
-    private readonly string _generatedPath = Path.Combine(environment.ContentRootPath, "Data", "Generated");
+    private readonly string _exportPath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Exports");
+    private readonly string _templatePath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Templates");
+    private readonly string _generatedPath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Generated");
 
     public async Task<MissionExportResult> ExportAsync(WarState state)
     {

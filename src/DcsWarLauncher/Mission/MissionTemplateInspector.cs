@@ -1,12 +1,13 @@
 using System.IO.Compression;
 using System.Text.RegularExpressions;
+using DcsWarLauncher.Infrastructure;
 
 namespace DcsWarLauncher.Mission;
 
 public sealed partial class MissionTemplateInspector(IWebHostEnvironment environment)
 {
     private static readonly string[] RequiredFiles = ["mission", "warehouses", "options", "theatre"];
-    private readonly string _templatePath = Path.Combine(environment.ContentRootPath, "Data", "Templates");
+    private readonly string _templatePath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Templates");
 
     public MissionTemplateInspection InspectLatest()
     {
