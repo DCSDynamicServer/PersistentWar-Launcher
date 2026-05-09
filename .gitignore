@@ -18,3 +18,7 @@ __pycache__/
 
 config.local.json
 settings.local.json
+
+src/DcsWarLauncher/Data/Backups/
+src/DcsWarLauncher/Data/Exports/
+src/DcsWarLauncher/Data/Generated/
