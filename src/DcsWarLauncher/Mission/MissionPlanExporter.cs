@@ -82,6 +82,7 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
         var plan = await ExportAsync(state);
         await EmbedMissionPlanAsync(mizFilePath, plan.FilePath);
         await PatchMissionBriefingAsync(mizFilePath, state);
+        await PatchGeneratedAiFlightsAsync(mizFilePath, plan.FilePath);
         return new PreparedMissionResult(
             mizFileName,
             mizFilePath,
@@ -186,6 +187,7 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
             package.Task,
             package.Target,
             package.Squadron,
+            squadron?.Aircraft ?? "",
             package.AircraftCount,
             package.Status,
             departure?.AnchorName,
@@ -594,6 +596,37 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
 
         missionEntry.Delete();
         var patchedMission = PatchDescriptionText(missionText, BuildBriefingText(state));
+        var newEntry = archive.CreateEntry("mission", CompressionLevel.Optimal);
+        await using var entryStream = newEntry.Open();
+        await using var writer = new StreamWriter(entryStream);
+        await writer.WriteAsync(patchedMission);
+    }
+
+    private static async Task PatchGeneratedAiFlightsAsync(string mizFilePath, string missionPlanFilePath)
+    {
+        var missionPlanJson = await File.ReadAllTextAsync(missionPlanFilePath);
+        var plan = JsonSerializer.Deserialize<MissionPlan>(missionPlanJson, JsonOptions);
+        if (plan is null || plan.FlightGroups.Count == 0)
+        {
+            return;
+        }
+
+        using var archive = ZipFile.Open(mizFilePath, ZipArchiveMode.Update);
+        var missionEntry = archive.GetEntry("mission");
+        if (missionEntry is null)
+        {
+            return;
+        }
+
+        string missionText;
+        await using (var stream = missionEntry.Open())
+        using (var reader = new StreamReader(stream))
+        {
+            missionText = await reader.ReadToEndAsync();
+        }
+
+        missionEntry.Delete();
+        var patchedMission = MissionLuaPatcher.PatchGeneratedAiFlights(missionText, plan);
         var newEntry = archive.CreateEntry("mission", CompressionLevel.Optimal);
         await using var entryStream = newEntry.Open();
         await using var writer = new StreamWriter(entryStream);
