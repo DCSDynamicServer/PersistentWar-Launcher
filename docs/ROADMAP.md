@@ -43,6 +43,8 @@
 - Automatische BattleReports aus Kills, Verlusten, Objective-Events und Missionsausgang erzeugen.
 - Mission-Result-Format fuer direkte Reports, Eventlisten und JSONL/DCS-Log-Exports dokumentieren.
 - Warehouse/Fuel/Ammo-Patching fuer einfache Supply-Wirkung pro Base vorbereiten.
+- Warehouse-Shadow-Block in generierte `.miz` schreiben, bis echte DCS-Warehouse-IDs sicher gemappt sind.
+- Bekannte Caucasus-Airport-Warehouse-IDs fuer Fuel/Operating-Level-Patching mappen.
 - Operationalen 6h-Loop herstellen: Mission vorbereiten, Server starten, Turn laufen lassen, Ergebnis importieren, naechste Mission erzeugen.
 - Minimaler Admin-Testbetrieb mit mehreren Spielern auf dem Server.
 

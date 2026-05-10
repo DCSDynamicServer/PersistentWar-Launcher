@@ -16,7 +16,8 @@ public sealed record MissionPlan(
     IReadOnlyCollection<FlightGroupPlan> FlightGroups,
     IReadOnlyCollection<GroundGroupPlan> GroundGroups,
     IReadOnlyCollection<CampaignTargetPlan> SupplyTargets,
-    IReadOnlyCollection<CampaignTargetPlan> FactoryTargets);
+    IReadOnlyCollection<CampaignTargetPlan> FactoryTargets,
+    IReadOnlyCollection<WarehousePatchPlan> WarehousePatches);
 
 public sealed record TemplatePolicy(
     string Mode,
@@ -110,6 +111,16 @@ public sealed record CampaignTargetPlan(
     string TargetType,
     string Status,
     int Value);
+
+public sealed record WarehousePatchPlan(
+    string Id,
+    string Airbase,
+    string Coalition,
+    int? DcsWarehouseId,
+    int FuelPercent,
+    int AmmoPercent,
+    int AircraftPercent,
+    string Status);
 
 public sealed record MissionExportResult(
     string FileName,

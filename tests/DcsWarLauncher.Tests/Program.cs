@@ -512,6 +512,8 @@ static void MissionPlanExporterWritesCampaignPlan()
         Assert.True(json.Contains("frontlineMarkers"), "Expected frontline marker plans.");
         Assert.True(json.Contains("flightGroups"), "Expected flight group plans.");
         Assert.True(json.Contains("templateBindings"), "Expected template anchor bindings.");
+        Assert.True(json.Contains("warehousePatches"), "Expected warehouse patch plans.");
+        Assert.True(json.Contains("\"dcsWarehouseId\": 25"), "Expected Kutaisi DCS warehouse id.");
         Assert.True(json.Contains("WL_OBJ_KUTAISI_BLUE"), "Expected objective anchor binding.");
         Assert.True(json.Contains("WL_OBJ_KRASNODAR_BLUE"), "Expected Krasnodar Center alias binding.");
         Assert.True(json.Contains("WL_AIRBASE_KUTAISI"), "Expected airbase anchor binding.");
@@ -601,6 +603,15 @@ static void MissionPlanExporterPreparesMissionCopy()
         Assert.True(missionText.Contains("WL_AI_flight-blue-test", StringComparison.Ordinal), "Expected generated AI package group.");
         Assert.True(missionText.Contains("[\"type\"] = \"F-16C_50\"", StringComparison.Ordinal), "Expected generated AI aircraft type.");
         Assert.True(missionText.Contains("[\"name\"] = \"WL_FRONT_01\"", StringComparison.Ordinal), "Expected generated route through front anchor.");
+        var warehouseEntry = archive.GetEntry("warehouses") ?? throw new InvalidOperationException("Expected warehouses entry.");
+        using var warehouseStream = warehouseEntry.Open();
+        using var warehouseReader = new StreamReader(warehouseStream);
+        var warehouseText = warehouseReader.ReadToEnd();
+        Assert.True(warehouseText.Contains("WL_WAREHOUSE_PATCH_BEGIN", StringComparison.Ordinal), "Expected warehouse patch marker.");
+        Assert.True(warehouseText.Contains("campaign-supply-shadow", StringComparison.Ordinal), "Expected warehouse patch mode.");
+        Assert.True(warehouseText.Contains("Kutaisi", StringComparison.Ordinal), "Expected airbase warehouse data.");
+        Assert.True(warehouseText.Contains("[\"unlimitedFuel\"] = false", StringComparison.Ordinal), "Expected finite fuel warehouse patch.");
+        Assert.True(warehouseText.Contains("[\"InitFuel\"] = 84", StringComparison.Ordinal), "Expected campaign fuel level in warehouse patch.");
     }
     finally
     {
@@ -820,7 +831,7 @@ static void CreateMinimalMiz(string path)
 {
     using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
     AddZipEntry(archive, "mission", "mission = {\n\t[\"trig\"] = {\n\t\t[\"actions\"] = {},\n\t\t[\"events\"] = {},\n\t\t[\"custom\"] = {},\n\t\t[\"func\"] = {},\n\t\t[\"flag\"] = {},\n\t\t[\"conditions\"] = {},\n\t\t[\"customStartup\"] = {},\n\t\t[\"funcStartup\"] = {},\n\t},\n\t[\"triggers\"] = {\n\t\t[\"zones\"] = {\n\t\t\t[1] = {\n\t\t\t\t[\"y\"] = 200,\n\t\t\t\t[\"x\"] = 100,\n\t\t\t\t[\"name\"] = \"WL_OBJ_KUTAISI_BLUE\",\n\t\t\t\t[\"radius\"] = 500,\n\t\t\t},\n\t\t\t[2] = {\n\t\t\t\t[\"y\"] = 300,\n\t\t\t\t[\"x\"] = 150,\n\t\t\t\t[\"name\"] = \"WL_FRONT_01\",\n\t\t\t\t[\"radius\"] = 700,\n\t\t\t},\n\t\t\t[3] = {\n\t\t\t\t[\"y\"] = 400,\n\t\t\t\t[\"x\"] = 200,\n\t\t\t\t[\"name\"] = \"WL_OBJ_KRASNODAR_BLUE\",\n\t\t\t\t[\"radius\"] = 500,\n\t\t\t},\n\t\t\t[4] = {\n\t\t\t\t[\"y\"] = 500,\n\t\t\t\t[\"x\"] = 250,\n\t\t\t\t[\"name\"] = \"WL_AIRBASE_KUTAISI\",\n\t\t\t\t[\"radius\"] = 1000,\n\t\t\t},\n\t\t\t[5] = {\n\t\t\t\t[\"y\"] = 550,\n\t\t\t\t[\"x\"] = 300,\n\t\t\t\t[\"name\"] = \"WL_HELI_BASE_KUTAISI_BLUE\",\n\t\t\t\t[\"radius\"] = 800,\n\t\t\t},\n\t\t},\n\t},\n\t[\"coalition\"] = {\n\t\t[\"blue\"] = {\n\t\t\t[\"name\"] = \"blue\",\n\t\t\t[\"country\"] = {\n\t\t\t\t[1] = {\n\t\t\t\t\t[\"name\"] = \"USA\",\n\t\t\t\t\t[\"id\"] = 2,\n\t\t\t\t},\n\t\t\t},\n\t\t},\n\t\t[\"red\"] = {\n\t\t\t[\"name\"] = \"red\",\n\t\t\t[\"country\"] = {\n\t\t\t\t[1] = {\n\t\t\t\t\t[\"name\"] = \"Russia\",\n\t\t\t\t\t[\"id\"] = 0,\n\t\t\t\t},\n\t\t\t},\n\t\t},\n\t},\n\t[\"descriptionText\"] = \"Template briefing\",\n\t[\"trigrules\"] = {},\n}");
-    AddZipEntry(archive, "warehouses", "warehouses = {}");
+    AddZipEntry(archive, "warehouses", "warehouses = {\n\t[\"airports\"] = {\n\t\t[25] = {\n\t\t\t[\"unlimitedFuel\"] = true,\n\t\t\t[\"unlimitedMunitions\"] = true,\n\t\t\t[\"unlimitedAircrafts\"] = true,\n\t\t\t[\"OperatingLevel_Fuel\"] = 10,\n\t\t\t[\"OperatingLevel_Eqp\"] = 10,\n\t\t\t[\"OperatingLevel_Air\"] = 10,\n\t\t\t[\"coalition\"] = \"BLUE\",\n\t\t\t[\"jet_fuel\"] = {\n\t\t\t\t[\"InitFuel\"] = 100,\n\t\t\t}, -- end of [\"jet_fuel\"]\n\t\t\t[\"gasoline\"] = {\n\t\t\t\t[\"InitFuel\"] = 100,\n\t\t\t}, -- end of [\"gasoline\"]\n\t\t\t[\"diesel\"] = {\n\t\t\t\t[\"InitFuel\"] = 100,\n\t\t\t}, -- end of [\"diesel\"]\n\t\t\t[\"methanol_mixture\"] = {\n\t\t\t\t[\"InitFuel\"] = 100,\n\t\t\t}, -- end of [\"methanol_mixture\"]\n\t\t}, -- end of [25]\n\t}, -- end of [\"airports\"]\n}");
     AddZipEntry(archive, "options", "options = {}");
     AddZipEntry(archive, "theatre", "Caucasus");
 }

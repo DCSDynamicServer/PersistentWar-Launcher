@@ -83,6 +83,7 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
         await EmbedMissionPlanAsync(mizFilePath, plan.FilePath);
         await PatchMissionBriefingAsync(mizFilePath, state);
         await PatchGeneratedAiFlightsAsync(mizFilePath, plan.FilePath);
+        await PatchWarehousePlanAsync(mizFilePath, plan.FilePath);
         return new PreparedMissionResult(
             mizFileName,
             mizFilePath,
@@ -149,6 +150,7 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
                 factory.Status,
                 factory.Health))
             .ToList();
+        var warehousePatches = BuildWarehousePatches(state);
 
         return new MissionPlan(
             state.CampaignId,
@@ -167,7 +169,78 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
             flightGroups,
             groundGroups,
             supplyTargets,
-            factoryTargets);
+            factoryTargets,
+            warehousePatches);
+    }
+
+    private static List<WarehousePatchPlan> BuildWarehousePatches(WarState state)
+    {
+        return state.Airbases
+            .Select(airbase =>
+            {
+                var depot = state.SupplyDepots.FirstOrDefault(candidate =>
+                    candidate.Location.Equals(airbase.Name, StringComparison.OrdinalIgnoreCase) &&
+                    candidate.Coalition.Equals(airbase.Owner, StringComparison.OrdinalIgnoreCase));
+                var depotStores = depot?.Stores ?? 50;
+                var fuel = ClampPercent(airbase.Fuel);
+                var ammo = ClampPercent((depotStores * 2 + fuel) / 3);
+                var aircraft = ClampPercent((airbase.RunwayHealth + depotStores) / 2);
+                var status = airbase.Status.Equals("operational", StringComparison.OrdinalIgnoreCase) ||
+                    airbase.Status.Equals("fortified", StringComparison.OrdinalIgnoreCase)
+                    ? depot?.Status ?? "active"
+                    : airbase.Status;
+
+                return new WarehousePatchPlan(
+                    StableId("warehouse", airbase.Name),
+                    airbase.Name,
+                    airbase.Owner,
+                    ResolveDcsWarehouseId(state.Theater, airbase.Name),
+                    fuel,
+                    ammo,
+                    aircraft,
+                    status);
+            })
+            .ToList();
+    }
+
+    private static int ClampPercent(int value) => Math.Clamp(value, 0, 100);
+
+    private static int? ResolveDcsWarehouseId(string theater, string airbaseName)
+    {
+        if (!theater.Equals("Caucasus", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var normalized = airbaseName.Trim();
+        return normalized switch
+        {
+            "Anapa-Vityazevo" => 12,
+            "Krasnodar Center" => 13,
+            "Krasnodar-Center" => 13,
+            "Novorossiysk" => 14,
+            "Krymsk" => 15,
+            "Maykop-Khanskaya" => 16,
+            "Gelendzhik" => 17,
+            "Sochi-Adler" => 18,
+            "Krasnodar-Pashkovsky" => 19,
+            "Sukhumi" => 20,
+            "Sukhumi-Babushara" => 20,
+            "Gudauta" => 21,
+            "Batumi" => 22,
+            "Senaki" => 23,
+            "Senaki-Kolkhi" => 23,
+            "Kobuleti" => 24,
+            "Kutaisi" => 25,
+            "Mineralnye Vody" => 26,
+            "Nalchik" => 27,
+            "Mozdok" => 28,
+            "Tbilisi-Lochini" => 29,
+            "Soganlug" => 30,
+            "Vaziani" => 31,
+            "Beslan" => 32,
+            _ => null
+        };
     }
 
     private static FlightGroupPlan BuildFlightGroupPlan(
@@ -631,6 +704,42 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
         await using var entryStream = newEntry.Open();
         await using var writer = new StreamWriter(entryStream);
         await writer.WriteAsync(patchedMission);
+    }
+
+    private static async Task PatchWarehousePlanAsync(string mizFilePath, string missionPlanFilePath)
+    {
+        var missionPlanJson = await File.ReadAllTextAsync(missionPlanFilePath);
+        var plan = JsonSerializer.Deserialize<MissionPlan>(missionPlanJson, JsonOptions);
+        if (plan is null || plan.WarehousePatches.Count == 0)
+        {
+            return;
+        }
+
+        using var archive = ZipFile.Open(mizFilePath, ZipArchiveMode.Update);
+        var warehouseEntry = archive.GetEntry("warehouses");
+        if (warehouseEntry is null)
+        {
+            var createdWarehouse = MissionWarehousePatcher.PatchWarehousePlan("warehouses = {}", plan);
+            var createdEntry = archive.CreateEntry("warehouses", CompressionLevel.Optimal);
+            await using var createdStream = createdEntry.Open();
+            await using var createdWriter = new StreamWriter(createdStream);
+            await createdWriter.WriteAsync(createdWarehouse);
+            return;
+        }
+
+        string warehouseText;
+        await using (var stream = warehouseEntry.Open())
+        using (var reader = new StreamReader(stream))
+        {
+            warehouseText = await reader.ReadToEndAsync();
+        }
+
+        warehouseEntry.Delete();
+        var patchedWarehouse = MissionWarehousePatcher.PatchWarehousePlan(warehouseText, plan);
+        var newEntry = archive.CreateEntry("warehouses", CompressionLevel.Optimal);
+        await using var entryStream = newEntry.Open();
+        await using var writer = new StreamWriter(entryStream);
+        await writer.WriteAsync(patchedWarehouse);
     }
 
     private static string PatchDescriptionText(string missionText, string briefingText)
