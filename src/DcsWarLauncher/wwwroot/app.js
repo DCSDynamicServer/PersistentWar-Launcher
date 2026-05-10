@@ -7,9 +7,14 @@ const els = {
   generatedMissionName: document.querySelector("#generatedMissionName"),
   generatedMissionMeta: document.querySelector("#generatedMissionMeta"),
   useGeneratedMissionBtn: document.querySelector("#useGeneratedMissionBtn"),
+  missionResultName: document.querySelector("#missionResultName"),
+  missionResultMeta: document.querySelector("#missionResultMeta"),
+  importMissionResultBtn: document.querySelector("#importMissionResultBtn"),
+  advanceFromResultBtn: document.querySelector("#advanceFromResultBtn"),
   startBtn: document.querySelector("#startBtn"),
   stopBtn: document.querySelector("#stopBtn"),
   actionMessage: document.querySelector("#actionMessage"),
+  turnMessage: document.querySelector("#turnMessage"),
   schedulerEnabled: document.querySelector("#schedulerEnabled"),
   schedulerPoll: document.querySelector("#schedulerPoll"),
   schedulerChecked: document.querySelector("#schedulerChecked"),
@@ -61,6 +66,7 @@ const els = {
 
 let currentState = null;
 let latestGeneratedMission = null;
+let latestMissionResult = null;
 
 function activateTab(tabName) {
   for (const button of els.tabButtons) {
@@ -125,6 +131,31 @@ async function loadGeneratedMission() {
   els.generatedMissionName.textContent = latestGeneratedMission.mizFileName;
   els.generatedMissionMeta.textContent = `${sizeKb} - ${modified}`;
   els.useGeneratedMissionBtn.disabled = false;
+}
+
+async function loadMissionResultStatus() {
+  const response = await fetch("/api/mission/results/latest");
+  latestMissionResult = await response.json();
+
+  if (!latestMissionResult.exists) {
+    els.missionResultName.textContent = "Keine Ergebnisdatei";
+    els.missionResultMeta.textContent = "Data/Results ist leer.";
+    els.importMissionResultBtn.disabled = true;
+    els.advanceFromResultBtn.disabled = true;
+    return;
+  }
+
+  const modified = latestMissionResult.lastModifiedUtc
+    ? new Date(latestMissionResult.lastModifiedUtc).toLocaleString()
+    : "-";
+  const sizeKb = latestMissionResult.sizeBytes
+    ? `${Math.round(latestMissionResult.sizeBytes / 1024)} KB`
+    : "-";
+
+  els.missionResultName.textContent = latestMissionResult.fileName;
+  els.missionResultMeta.textContent = `${sizeKb} - ${modified}`;
+  els.importMissionResultBtn.disabled = false;
+  els.advanceFromResultBtn.disabled = false;
 }
 
 function useGeneratedMission() {
@@ -506,7 +537,7 @@ async function saveState() {
 }
 
 async function advanceTurn() {
-  els.actionMessage.textContent = "AI wertet Turn aus...";
+  els.turnMessage.textContent = "AI wertet Turn aus...";
   const report = {
     blueMissionSuccess: Number(els.blueSuccess.value),
     redMissionSuccess: Number(els.redSuccess.value),
@@ -522,13 +553,63 @@ async function advanceTurn() {
   });
 
   if (!response.ok) {
-    els.actionMessage.textContent = "Turn konnte nicht abgeschlossen werden.";
+    els.turnMessage.textContent = "Turn konnte nicht abgeschlossen werden.";
     return;
   }
 
   currentState = await response.json();
-  els.actionMessage.textContent = `Turn ${currentState.turn} erstellt.`;
+  els.turnMessage.textContent = `Turn ${currentState.turn} erstellt.`;
   await loadState();
+}
+
+async function importMissionResult() {
+  els.turnMessage.textContent = "Lade Mission Result...";
+  const response = await fetch("/api/mission/results/import", {
+    method: "POST",
+    headers: authHeaders()
+  });
+
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result?.battleReport) {
+    els.turnMessage.textContent = response.status === 401
+      ? "Host Token fehlt oder ist ungueltig. Bitte im Server-Tab eintragen."
+      : result?.error || "Mission Result konnte nicht geladen werden.";
+    return;
+  }
+
+  applyBattleReport(result.battleReport);
+  els.turnMessage.textContent = `BattleReport aus ${result.fileName} geladen.`;
+  await loadMissionResultStatus();
+}
+
+async function advanceTurnFromResult() {
+  els.turnMessage.textContent = "Schliesse Turn aus Mission Result ab...";
+  const response = await fetch("/api/war/advance-turn/from-result", {
+    method: "POST",
+    headers: authHeaders()
+  });
+
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result?.state) {
+    els.turnMessage.textContent = response.status === 401
+      ? "Host Token fehlt oder ist ungueltig. Bitte im Server-Tab eintragen."
+      : result?.error || "Turn konnte nicht aus Mission Result abgeschlossen werden.";
+    return;
+  }
+
+  applyBattleReport(result.battleReport);
+  currentState = result.state;
+  els.turnMessage.textContent = `Turn ${currentState.turn} aus ${result.fileName} erstellt.`;
+  await loadState();
+  await loadMissionResultStatus();
+}
+
+function applyBattleReport(report) {
+  els.blueSuccess.value = report.blueMissionSuccess ?? 0;
+  els.redSuccess.value = report.redMissionSuccess ?? 0;
+  els.blueLosses.value = report.blueLosses ?? 0;
+  els.redLosses.value = report.redLosses ?? 0;
+  els.airSuperiority.value = report.airSuperiority ?? 0;
 }
 
 async function previewMissionPlan() {
@@ -680,6 +761,8 @@ async function prepareMission() {
 els.startBtn.addEventListener("click", startServer);
 els.stopBtn.addEventListener("click", stopServer);
 els.useGeneratedMissionBtn.addEventListener("click", useGeneratedMission);
+els.importMissionResultBtn.addEventListener("click", importMissionResult);
+els.advanceFromResultBtn.addEventListener("click", advanceTurnFromResult);
 els.advanceTurnBtn.addEventListener("click", advanceTurn);
 els.saveStateBtn.addEventListener("click", saveState);
 els.previewMissionPlanBtn.addEventListener("click", previewMissionPlan);
@@ -693,6 +776,7 @@ els.refreshBtn.addEventListener("click", async () => {
   await loadStatus();
   await loadScheduler();
   await loadGeneratedMission();
+  await loadMissionResultStatus();
   await loadState();
   await loadTemplateInspection();
 });
@@ -700,6 +784,7 @@ els.refreshBtn.addEventListener("click", async () => {
 loadStatus();
 loadScheduler();
 loadGeneratedMission();
+loadMissionResultStatus();
 loadState();
 loadTemplateInspection();
 setInterval(loadStatus, 5000);

@@ -50,7 +50,16 @@
       <section class="panel turn-panel">
         <div class="panel-heading">
           <h2>6h Turn Auswertung</h2>
-          <button id="advanceTurnBtn">Turn abschliessen</button>
+          <div class="turn-actions">
+            <button id="importMissionResultBtn" class="secondary" type="button">Result laden</button>
+            <button id="advanceFromResultBtn" class="secondary" type="button">Result abschliessen</button>
+            <button id="advanceTurnBtn" type="button">Turn abschliessen</button>
+          </div>
+        </div>
+        <div class="result-status">
+          <span>Letztes Mission Result</span>
+          <strong id="missionResultName">-</strong>
+          <small id="missionResultMeta">-</small>
         </div>
         <div class="battle-report">
           <label>Blue Erfolg <input id="blueSuccess" type="number" min="-25" max="25" value="10"></label>
@@ -59,6 +68,7 @@
           <label>Red Verluste <input id="redLosses" type="number" min="0" max="50" value="6"></label>
           <label>Luftueberlegenheit <input id="airSuperiority" type="number" min="-25" max="25" value="3"></label>
         </div>
+        <p id="turnMessage" class="message"></p>
       </section>
 
       <section class="panel map-panel">

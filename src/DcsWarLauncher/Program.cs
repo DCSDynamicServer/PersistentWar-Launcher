@@ -2,6 +2,7 @@ using DcsWarLauncher.Campaign;
 using DcsWarLauncher.Domain;
 using DcsWarLauncher.Infrastructure;
 using DcsWarLauncher.Mission;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,7 @@ builder.Services.AddSingleton<DcsProcessService>();
 builder.Services.AddSingleton<TurnEngine>();
 builder.Services.AddSingleton<MissionPlanExporter>();
 builder.Services.AddSingleton<MissionTemplateInspector>();
+builder.Services.AddSingleton<MissionResultImporter>();
 builder.Services.AddSingleton<TurnSchedulerState>();
 builder.Services.AddHostedService<TurnSchedulerService>();
 
@@ -89,6 +91,42 @@ app.MapPost("/api/war/advance-turn", async (HttpContext context, StateStore stor
     return Results.Ok(nextState);
 });
 
+app.MapPost("/api/war/advance-turn/from-result", async (
+    HttpContext context,
+    StateStore store,
+    TurnEngine turnEngine,
+    MissionResultImporter importer) =>
+{
+    if (!IsAuthorized(context, app.Configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    try
+    {
+        var imported = await importer.ImportLatestAsync();
+        var state = await store.LoadAsync();
+        var nextState = turnEngine.Advance(state, imported.BattleReport);
+        await store.SaveAsync(nextState);
+        return Results.Ok(new
+        {
+            imported.FileName,
+            imported.FilePath,
+            imported.ImportedUtc,
+            imported.BattleReport,
+            state = nextState
+        });
+    }
+    catch (FileNotFoundException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (JsonException ex)
+    {
+        return Results.BadRequest(new { error = $"Mission result could not be parsed: {ex.Message}" });
+    }
+});
+
 app.MapPost("/api/mission/export-plan", async (HttpContext context, StateStore store, MissionPlanExporter exporter) =>
 {
     if (!IsAuthorized(context, app.Configuration))
@@ -117,6 +155,34 @@ app.MapGet("/api/mission/generated/latest", (MissionPlanExporter exporter) =>
 {
     var result = exporter.GetLatestGeneratedMission();
     return Results.Ok(result);
+});
+
+app.MapGet("/api/mission/results/latest", (MissionResultImporter importer) =>
+{
+    var result = importer.GetLatestResultStatus();
+    return Results.Ok(result);
+});
+
+app.MapPost("/api/mission/results/import", async (HttpContext context, MissionResultImporter importer) =>
+{
+    if (!IsAuthorized(context, app.Configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    try
+    {
+        var result = await importer.ImportLatestAsync();
+        return Results.Ok(result);
+    }
+    catch (FileNotFoundException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (JsonException ex)
+    {
+        return Results.BadRequest(new { error = $"Mission result could not be parsed: {ex.Message}" });
+    }
 });
 
 app.MapPost("/api/mission/prepare", async (HttpContext context, StateStore store, MissionPlanExporter exporter) =>

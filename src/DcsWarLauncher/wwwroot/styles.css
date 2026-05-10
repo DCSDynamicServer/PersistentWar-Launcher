@@ -162,6 +162,13 @@ input:focus {
   gap: 10px;
 }
 
+.turn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 button {
   border: 0;
   border-radius: 6px;
@@ -527,8 +534,20 @@ button.wide {
   padding: 10px 12px;
 }
 
+.result-status {
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  margin: 14px 0;
+  padding: 10px 12px;
+}
+
 .generated-mission span,
-.generated-mission small {
+.generated-mission small,
+.result-status span,
+.result-status small {
   color: var(--muted);
 }
 
@@ -764,7 +783,9 @@ button.wide {
 @media (max-width: 760px) {
   .topbar,
   .grid,
-  .ops-grid {
+  .ops-grid,
+  .panel-heading,
+  .turn-actions {
     display: block;
   }
 
@@ -784,5 +805,10 @@ button.wide {
   .history-row,
   .history-row dl {
     grid-template-columns: 1fr;
+  }
+
+  .turn-actions button {
+    width: 100%;
+    margin-top: 8px;
   }
 }

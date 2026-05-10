@@ -37,6 +37,11 @@ var tests = new (string Name, Action Test)[]
     ("Mission plan exporter writes campaign plan", MissionPlanExporterWritesCampaignPlan),
     ("Mission plan routes packages through anchors", MissionPlanRoutesPackagesThroughAnchors),
     ("Mission plan exporter prepares mission copy", MissionPlanExporterPreparesMissionCopy),
+    ("Mission result importer reads direct battle report", MissionResultImporterReadsDirectBattleReport),
+    ("Mission result importer maps events to battle report", MissionResultImporterMapsEventsToBattleReport),
+    ("Mission result importer maps root event array", MissionResultImporterMapsRootEventArray),
+    ("Mission result importer maps json lines", MissionResultImporterMapsJsonLines),
+    ("Mission result importer picks latest result file", MissionResultImporterPicksLatestResultFile),
     ("Mission template inspector reports WL anchors", MissionTemplateInspectorReportsWlAnchors),
     ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
 };
@@ -596,6 +601,164 @@ static void MissionPlanExporterPreparesMissionCopy()
         Assert.True(missionText.Contains("WL_AI_flight-blue-test", StringComparison.Ordinal), "Expected generated AI package group.");
         Assert.True(missionText.Contains("[\"type\"] = \"F-16C_50\"", StringComparison.Ordinal), "Expected generated AI aircraft type.");
         Assert.True(missionText.Contains("[\"name\"] = \"WL_FRONT_01\"", StringComparison.Ordinal), "Expected generated route through front anchor.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionResultImporterReadsDirectBattleReport()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var resultPath = Path.Combine(root, "Data", "Results");
+        Directory.CreateDirectory(resultPath);
+        var filePath = Path.Combine(resultPath, "turn-result.json");
+        File.WriteAllText(filePath, """
+            {
+              "battleReport": {
+                "blueMissionSuccess": 12,
+                "redMissionSuccess": 4,
+                "blueLosses": 2,
+                "redLosses": 7,
+                "airSuperiority": 6
+              }
+            }
+            """);
+
+        var importer = new MissionResultImporter(new TestEnvironment(root));
+        var report = importer.ImportAsync(filePath).GetAwaiter().GetResult();
+
+        Assert.Equal(12, report.BlueMissionSuccess);
+        Assert.Equal(4, report.RedMissionSuccess);
+        Assert.Equal(2, report.BlueLosses);
+        Assert.Equal(7, report.RedLosses);
+        Assert.Equal(6, report.AirSuperiority);
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionResultImporterMapsEventsToBattleReport()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var resultPath = Path.Combine(root, "Data", "Results");
+        Directory.CreateDirectory(resultPath);
+        var filePath = Path.Combine(resultPath, "events.json");
+        File.WriteAllText(filePath, """
+            {
+              "events": [
+                { "type": "kill", "targetCoalition": "red" },
+                { "type": "crash", "targetCoalition": "blue" },
+                { "type": "objective-captured", "coalition": "blue", "value": 12 },
+                { "type": "mission-success", "coalition": "red" },
+                { "type": "air-superiority", "coalition": "blue" }
+              ]
+            }
+            """);
+
+        var importer = new MissionResultImporter(new TestEnvironment(root));
+        var report = importer.ImportAsync(filePath).GetAwaiter().GetResult();
+
+        Assert.Equal(12, report.BlueMissionSuccess);
+        Assert.Equal(5, report.RedMissionSuccess);
+        Assert.Equal(1, report.BlueLosses);
+        Assert.Equal(1, report.RedLosses);
+        Assert.Equal(5, report.AirSuperiority);
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionResultImporterMapsRootEventArray()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var resultPath = Path.Combine(root, "Data", "Results");
+        Directory.CreateDirectory(resultPath);
+        var filePath = Path.Combine(resultPath, "events-array.json");
+        File.WriteAllText(filePath, """
+            [
+              { "type": "objective-captured", "coalition": "blue" },
+              { "type": "kill", "targetCoalition": "red" },
+              { "type": "air-superiority", "coalition": "red" }
+            ]
+            """);
+
+        var importer = new MissionResultImporter(new TestEnvironment(root));
+        var report = importer.ImportAsync(filePath).GetAwaiter().GetResult();
+
+        Assert.Equal(10, report.BlueMissionSuccess);
+        Assert.Equal(0, report.RedMissionSuccess);
+        Assert.Equal(0, report.BlueLosses);
+        Assert.Equal(1, report.RedLosses);
+        Assert.Equal(-5, report.AirSuperiority);
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionResultImporterMapsJsonLines()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var resultPath = Path.Combine(root, "Data", "Results");
+        Directory.CreateDirectory(resultPath);
+        var filePath = Path.Combine(resultPath, "events.log");
+        File.WriteAllText(filePath, """
+            WL_EVENT_EXPORT_BEGIN
+            { "type": "mission-success", "coalition": "blue", "value": 6 }
+            { "type": "loss", "targetCoalition": "blue" }
+            { "type": "objective-captured", "coalition": "red", "value": 8 }
+            WL_EVENT_EXPORT_END
+            """);
+
+        var importer = new MissionResultImporter(new TestEnvironment(root));
+        var report = importer.ImportAsync(filePath).GetAwaiter().GetResult();
+
+        Assert.Equal(6, report.BlueMissionSuccess);
+        Assert.Equal(8, report.RedMissionSuccess);
+        Assert.Equal(1, report.BlueLosses);
+        Assert.Equal(0, report.RedLosses);
+        Assert.Equal(0, report.AirSuperiority);
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionResultImporterPicksLatestResultFile()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var resultPath = Path.Combine(root, "Data", "Results");
+        Directory.CreateDirectory(resultPath);
+        var oldPath = Path.Combine(resultPath, "old.json");
+        var latestPath = Path.Combine(resultPath, "latest.json");
+        File.WriteAllText(oldPath, """{ "blueMissionSuccess": 1 }""");
+        File.WriteAllText(latestPath, """{ "blueMissionSuccess": 9 }""");
+        File.SetLastWriteTimeUtc(oldPath, DateTime.UtcNow.AddMinutes(-5));
+        File.SetLastWriteTimeUtc(latestPath, DateTime.UtcNow);
+
+        var importer = new MissionResultImporter(new TestEnvironment(root));
+        var result = importer.ImportLatestAsync().GetAwaiter().GetResult();
+
+        Assert.Equal("latest.json", result.FileName);
+        Assert.Equal(9, result.BattleReport.BlueMissionSuccess);
     }
     finally
     {
