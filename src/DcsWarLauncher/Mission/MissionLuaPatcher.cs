@@ -180,6 +180,7 @@ internal static class MissionLuaPatcher
     {
         var altitude = category.Equals("helicopter", StringComparison.OrdinalIgnoreCase) ? 250 : 2500;
         var speed = category.Equals("helicopter", StringComparison.OrdinalIgnoreCase) ? 55 : 220;
+        var eta = Math.Max(0, (index - 1) * 300);
         var sb = new StringBuilder();
         sb.AppendLine($"\t\t\t\t\t\t\t\t\t\t\t[{index}] =");
         sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t{");
@@ -188,8 +189,8 @@ internal static class MissionLuaPatcher
         sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"alt_type\"] = \"BARO\",");
         sb.AppendLine($"\t\t\t\t\t\t\t\t\t\t\t\t[\"speed\"] = {speed},");
         sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"type\"] = \"Turning Point\",");
-        sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"ETA\"] = 0,");
-        sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"ETA_locked\"] = false,");
+        sb.AppendLine($"\t\t\t\t\t\t\t\t\t\t\t\t[\"ETA\"] = {eta},");
+        sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"ETA_locked\"] = true,");
         sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"speed_locked\"] = true,");
         sb.AppendLine($"\t\t\t\t\t\t\t\t\t\t\t\t[\"x\"] = {LuaNumber(waypoint.X)},");
         sb.AppendLine($"\t\t\t\t\t\t\t\t\t\t\t\t[\"y\"] = {LuaNumber(waypoint.Y)},");
