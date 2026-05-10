@@ -191,7 +191,7 @@ internal static class MissionLuaPatcher
         sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"type\"] = \"Turning Point\",");
         sb.AppendLine($"\t\t\t\t\t\t\t\t\t\t\t\t[\"ETA\"] = {eta},");
         sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"ETA_locked\"] = true,");
-        sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"speed_locked\"] = true,");
+        sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"speed_locked\"] = false,");
         sb.AppendLine($"\t\t\t\t\t\t\t\t\t\t\t\t[\"x\"] = {LuaNumber(waypoint.X)},");
         sb.AppendLine($"\t\t\t\t\t\t\t\t\t\t\t\t[\"y\"] = {LuaNumber(waypoint.Y)},");
         sb.AppendLine($"\t\t\t\t\t\t\t\t\t\t\t\t[\"name\"] = {LuaString(waypoint.Name)},");
