@@ -81,6 +81,38 @@ h2 {
   border-color: rgba(94, 212, 138, .5);
 }
 
+.tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 18px;
+  padding-bottom: 2px;
+}
+
+.tab-button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.tab-button.active {
+  border-color: rgba(71, 163, 255, .65);
+  background: rgba(71, 163, 255, .12);
+  color: var(--text);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: grid;
+  gap: 18px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -151,6 +183,13 @@ button.wide {
   margin-top: 16px;
 }
 
+.campaign-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 16px;
+}
+
 .message {
   min-height: 22px;
   margin-bottom: 0;
@@ -164,6 +203,7 @@ button.wide {
 }
 
 .war-meta div,
+.template-meta div,
 .scheduler-grid div {
   background: var(--panel-soft);
   border: 1px solid var(--line);
@@ -172,6 +212,7 @@ button.wide {
 }
 
 .war-meta span,
+.template-meta span,
 .scheduler-grid span {
   display: block;
   color: var(--muted);
@@ -179,9 +220,24 @@ button.wide {
 }
 
 .war-meta strong,
+.template-meta strong,
 .scheduler-grid strong {
   display: block;
   margin-top: 6px;
+}
+
+.template-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.ok-text {
+  color: var(--green);
+}
+
+.bad-text {
+  color: var(--red);
 }
 
 .scheduler-grid {
@@ -202,12 +258,15 @@ button.wide {
 }
 
 .turn-panel,
+.history-panel,
 .map-panel,
 .ai-panel,
 .packages-panel,
 .squadrons-panel,
 .ground-panel,
-.depots-panel {
+.depots-panel,
+.factories-panel,
+.template-panel {
   margin-top: 18px;
 }
 
@@ -384,19 +443,224 @@ button.wide {
 
 .ai-plan,
 .mission-packages,
+.turn-history,
+.template-groups,
 .squadrons,
 .ground-units,
-.supply-depots {
+.supply-depots,
+.factories {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
+}
+
+.turn-history {
+  grid-template-columns: 1fr;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: minmax(150px, .7fr) 1fr;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 12px 14px;
+}
+
+.history-row span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.history-row dl {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(58px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.history-row dl div {
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+}
+
+.history-row dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.history-row dd {
+  margin: 4px 0 0;
+  font-weight: 800;
+}
+
+.empty-state {
+  margin: 0;
+  color: var(--muted);
+}
+
+.template-warnings {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.template-warnings p {
+  margin: 0;
+  border: 1px solid rgba(243, 188, 79, .35);
+  border-radius: 6px;
+  background: rgba(243, 188, 79, .08);
+  color: var(--gold);
+  padding: 10px 12px;
+}
+
+.generated-mission {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 10px 12px;
+}
+
+.generated-mission span,
+.generated-mission small {
+  color: var(--muted);
+}
+
+.generated-mission button {
+  width: fit-content;
+}
+
+.template-anchors,
+.template-groups {
+  margin-top: 12px;
+}
+
+.template-anchors {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.template-group {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 12px;
+}
+
+.template-anchor {
+  border: 1px solid rgba(243, 188, 79, .45);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 12px;
+}
+
+.template-group.blue {
+  border-color: rgba(71, 163, 255, .45);
+}
+
+.template-group.red {
+  border-color: rgba(255, 103, 94, .45);
+}
+
+.template-group span,
+.template-group small,
+.template-anchor span,
+.template-anchor small {
+  display: block;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.mission-plan-preview {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.preview-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+.preview-summary span {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  color: var(--muted);
+  padding: 10px 12px;
+}
+
+.preview-summary strong {
+  display: block;
+  color: var(--text);
+  margin-top: 4px;
+}
+
+.preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.preview-grid h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.preview-list {
+  display: grid;
+  gap: 8px;
+}
+
+.preview-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  padding: 10px 12px;
+}
+
+.preview-item.blue {
+  border-color: rgba(71, 163, 255, .45);
+}
+
+.preview-item.red {
+  border-color: rgba(255, 103, 94, .45);
+}
+
+.preview-item.front {
+  border-color: rgba(243, 188, 79, .45);
+}
+
+.preview-item.airbase {
+  border-color: rgba(111, 214, 255, .45);
+}
+
+.preview-item.missing {
+  border-color: rgba(243, 188, 79, .65);
+  background: rgba(243, 188, 79, .07);
+}
+
+.preview-item span,
+.preview-item small {
+  display: block;
+  color: var(--muted);
+  margin-top: 5px;
 }
 
 .ai-order,
 .package-card,
 .squadron-card,
 .ground-card,
-.depot-card {
+.depot-card,
+.factory-card {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel-soft);
@@ -407,7 +671,8 @@ button.wide {
 .package-card header,
 .squadron-card header,
 .ground-card header,
-.depot-card header {
+.depot-card header,
+.factory-card header {
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -509,8 +774,15 @@ button.wide {
   }
 
   .war-meta,
+  .template-meta,
   .supply,
+  .campaign-actions,
   .battle-report {
+    grid-template-columns: 1fr;
+  }
+
+  .history-row,
+  .history-row dl {
     grid-template-columns: 1fr;
   }
 }

@@ -16,8 +16,157 @@
       <div class="status-pill" id="serverPill">Verbinde...</div>
     </section>
 
-    <section class="grid">
-      <div class="panel control-panel">
+    <nav class="tabs" aria-label="Launcher sections">
+      <button class="tab-button active" data-tab-target="campaign" type="button">Campaign</button>
+      <button class="tab-button" data-tab-target="forces" type="button">Forces</button>
+      <button class="tab-button" data-tab-target="mission" type="button">Mission</button>
+      <button class="tab-button" data-tab-target="server" type="button">Server</button>
+      <button class="tab-button" data-tab-target="history" type="button">History</button>
+    </nav>
+
+    <section class="tab-panel active" data-tab-panel="campaign">
+      <div class="panel">
+        <h2>Kampagne</h2>
+        <div class="war-meta">
+          <div><span>Name</span><strong id="campaignName">-</strong></div>
+          <div><span>Theater</span><strong id="theater">-</strong></div>
+          <div><span>Turn</span><strong id="turn">-</strong></div>
+          <div><span>Phase</span><strong id="phase">-</strong></div>
+          <div><span>Dauer</span><strong id="turnDuration">-</strong></div>
+          <div><span>Ende</span><strong id="turnEnds">-</strong></div>
+          <div><span>Restzeit</span><strong id="turnRemaining">-</strong></div>
+          <div><span>Erstellt</span><strong id="campaignCreated">-</strong></div>
+        </div>
+        <div class="supply">
+          <label>Blue Supply <input id="blueSupply" type="number" min="0" max="999"></label>
+          <label>Red Supply <input id="redSupply" type="number" min="0" max="999"></label>
+        </div>
+        <div class="campaign-actions">
+          <button id="saveStateBtn">State speichern</button>
+          <button id="refreshBtn" class="secondary">Refresh</button>
+        </div>
+      </div>
+
+      <section class="panel turn-panel">
+        <div class="panel-heading">
+          <h2>6h Turn Auswertung</h2>
+          <button id="advanceTurnBtn">Turn abschliessen</button>
+        </div>
+        <div class="battle-report">
+          <label>Blue Erfolg <input id="blueSuccess" type="number" min="-25" max="25" value="10"></label>
+          <label>Red Erfolg <input id="redSuccess" type="number" min="-25" max="25" value="8"></label>
+          <label>Blue Verluste <input id="blueLosses" type="number" min="0" max="50" value="4"></label>
+          <label>Red Verluste <input id="redLosses" type="number" min="0" max="50" value="6"></label>
+          <label>Luftueberlegenheit <input id="airSuperiority" type="number" min="-25" max="25" value="3"></label>
+        </div>
+      </section>
+
+      <section class="panel map-panel">
+        <div class="panel-heading">
+          <h2>Campaign Map</h2>
+          <div class="map-legend">
+            <span class="blue-dot"></span> Blue
+            <span class="red-dot"></span> Red
+            <span class="gold-dot"></span> Contested
+          </div>
+        </div>
+        <div id="frontlineMap" class="frontline-map"></div>
+      </section>
+
+      <section class="panel objectives-panel">
+        <div class="panel-heading">
+          <h2>Objectives</h2>
+        </div>
+        <div id="objectives" class="objectives"></div>
+      </section>
+    </section>
+
+    <section class="tab-panel" data-tab-panel="forces">
+      <section class="ops-grid">
+        <div class="panel ai-panel">
+          <div class="panel-heading">
+            <h2>AI Planung</h2>
+          </div>
+          <div id="aiPlan" class="ai-plan"></div>
+        </div>
+
+        <div class="panel packages-panel">
+          <div class="panel-heading">
+            <h2>Packages</h2>
+          </div>
+          <div id="missionPackages" class="mission-packages"></div>
+        </div>
+      </section>
+
+      <section class="ops-grid">
+        <div class="panel squadrons-panel">
+          <div class="panel-heading">
+            <h2>Squadrons</h2>
+          </div>
+          <div id="squadrons" class="squadrons"></div>
+        </div>
+
+        <div class="panel ground-panel">
+          <div class="panel-heading">
+            <h2>Ground War</h2>
+          </div>
+          <div id="groundUnits" class="ground-units"></div>
+        </div>
+      </section>
+
+      <section class="ops-grid">
+        <div class="panel depots-panel">
+          <div class="panel-heading">
+            <h2>Supply Depots</h2>
+          </div>
+          <div id="supplyDepots" class="supply-depots"></div>
+        </div>
+
+        <div class="panel factories-panel">
+          <div class="panel-heading">
+            <h2>Factories</h2>
+          </div>
+          <div id="factories" class="factories"></div>
+        </div>
+      </section>
+    </section>
+
+    <section class="tab-panel" data-tab-panel="mission">
+      <div class="panel">
+        <div class="panel-heading">
+          <h2>Mission Plan</h2>
+          <div class="campaign-actions">
+            <button id="previewMissionPlanBtn" class="secondary">Vorschau</button>
+            <button id="exportMissionPlanBtn" class="secondary">Exportieren</button>
+            <button id="prepareMissionBtn">Turn-MIZ vorbereiten</button>
+          </div>
+        </div>
+        <div id="missionPlanPreview" class="mission-plan-preview"></div>
+      </div>
+
+      <div class="panel template-panel">
+        <div class="panel-heading">
+          <h2>Mission Template</h2>
+          <button id="inspectTemplateBtn" class="secondary">Pruefen</button>
+        </div>
+        <div class="template-meta">
+          <div><span>Datei</span><strong id="templateFile">-</strong></div>
+          <div><span>Theater</span><strong id="templateTheater">-</strong></div>
+          <div><span>Status</span><strong id="templateStatus">-</strong></div>
+          <div><span>Client Slots</span><strong id="templateSlots">-</strong></div>
+          <div><span>Blue</span><strong id="templateBlueSlots">-</strong></div>
+          <div><span>Red</span><strong id="templateRedSlots">-</strong></div>
+          <div><span>WL Anker</span><strong id="templateAnchorCount">-</strong></div>
+        </div>
+        <div id="templateWarnings" class="template-warnings"></div>
+        <div id="templateAnchors" class="template-anchors"></div>
+        <div id="templateGroups" class="template-groups"></div>
+      </div>
+    </section>
+
+    <section class="tab-panel" data-tab-panel="server">
+      <div class="grid">
+        <div class="panel control-panel">
         <h2>Remote Starter</h2>
         <label>
           Host Token
@@ -27,6 +176,12 @@
           Mission
           <input id="missionPath" type="text" placeholder="Leer lassen fuer Default-Mission">
         </label>
+        <div class="generated-mission">
+          <span>Letzte Turn-MIZ</span>
+          <strong id="generatedMissionName">-</strong>
+          <small id="generatedMissionMeta">-</small>
+          <button id="useGeneratedMissionBtn" class="secondary" type="button">Uebernehmen</button>
+        </div>
         <div class="actions">
           <button id="startBtn">Start</button>
           <button id="stopBtn" class="secondary">Stop</button>
@@ -44,97 +199,15 @@
         </div>
         <p id="schedulerMessage" class="message">-</p>
       </div>
-
-      <div class="panel">
-        <h2>Kampagne</h2>
-        <div class="war-meta">
-          <div><span>Theater</span><strong id="theater">-</strong></div>
-          <div><span>Turn</span><strong id="turn">-</strong></div>
-          <div><span>Phase</span><strong id="phase">-</strong></div>
-          <div><span>Dauer</span><strong id="turnDuration">-</strong></div>
-          <div><span>Ende</span><strong id="turnEnds">-</strong></div>
-          <div><span>Restzeit</span><strong id="turnRemaining">-</strong></div>
-        </div>
-        <div class="supply">
-          <label>Blue Supply <input id="blueSupply" type="number" min="0" max="999"></label>
-          <label>Red Supply <input id="redSupply" type="number" min="0" max="999"></label>
-        </div>
-        <button id="saveStateBtn" class="wide">State speichern</button>
       </div>
     </section>
 
-    <section class="panel turn-panel">
+    <section class="tab-panel" data-tab-panel="history">
+      <div class="panel history-panel">
       <div class="panel-heading">
-        <h2>6h Turn Auswertung</h2>
-        <button id="advanceTurnBtn">Turn abschliessen</button>
+        <h2>Turn History</h2>
       </div>
-      <div class="battle-report">
-        <label>Blue Erfolg <input id="blueSuccess" type="number" min="-25" max="25" value="10"></label>
-        <label>Red Erfolg <input id="redSuccess" type="number" min="-25" max="25" value="8"></label>
-        <label>Blue Verluste <input id="blueLosses" type="number" min="0" max="50" value="4"></label>
-        <label>Red Verluste <input id="redLosses" type="number" min="0" max="50" value="6"></label>
-        <label>Luftueberlegenheit <input id="airSuperiority" type="number" min="-25" max="25" value="3"></label>
-      </div>
-    </section>
-
-    <section class="panel map-panel">
-      <div class="panel-heading">
-        <h2>Campaign Map</h2>
-        <div class="map-legend">
-          <span class="blue-dot"></span> Blue
-          <span class="red-dot"></span> Red
-          <span class="gold-dot"></span> Contested
-        </div>
-      </div>
-      <div id="frontlineMap" class="frontline-map"></div>
-    </section>
-
-    <section class="ops-grid">
-      <div class="panel ai-panel">
-        <div class="panel-heading">
-          <h2>AI Planung</h2>
-        </div>
-        <div id="aiPlan" class="ai-plan"></div>
-      </div>
-
-      <div class="panel packages-panel">
-        <div class="panel-heading">
-          <h2>Packages</h2>
-        </div>
-        <div id="missionPackages" class="mission-packages"></div>
-      </div>
-    </section>
-
-    <section class="ops-grid">
-      <div class="panel objectives-panel">
-        <div class="panel-heading">
-          <h2>Objectives</h2>
-          <button id="refreshBtn" class="secondary">Refresh</button>
-        </div>
-        <div id="objectives" class="objectives"></div>
-      </div>
-
-      <div class="panel squadrons-panel">
-        <div class="panel-heading">
-          <h2>Squadrons</h2>
-        </div>
-        <div id="squadrons" class="squadrons"></div>
-      </div>
-    </section>
-
-    <section class="ops-grid">
-      <div class="panel ground-panel">
-        <div class="panel-heading">
-          <h2>Ground War</h2>
-        </div>
-        <div id="groundUnits" class="ground-units"></div>
-      </div>
-
-      <div class="panel depots-panel">
-        <div class="panel-heading">
-          <h2>Supply Depots</h2>
-        </div>
-        <div id="supplyDepots" class="supply-depots"></div>
+      <div id="turnHistory" class="turn-history"></div>
       </div>
     </section>
   </main>
