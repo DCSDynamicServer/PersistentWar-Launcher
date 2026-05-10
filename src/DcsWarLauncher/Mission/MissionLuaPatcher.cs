@@ -63,7 +63,7 @@ internal static class MissionLuaPatcher
         string category,
         string groupLua)
     {
-        var nextCountryIndex = NextArrayIndex(missionText[countryTable.OpenBrace..countryTable.CloseBrace]);
+        var nextCountryIndex = NextDirectArrayIndex(missionText, countryTable);
         var block = string.Join(Environment.NewLine,
             "",
             $"\t\t\t\t[{nextCountryIndex}] =",
@@ -120,7 +120,7 @@ internal static class MissionLuaPatcher
             return missionText.Insert(categoryTable.Value.CloseBrace, block);
         }
 
-        var nextGroupIndex = NextArrayIndex(missionText[groupTable.Value.OpenBrace..groupTable.Value.CloseBrace]);
+        var nextGroupIndex = NextDirectArrayIndex(missionText, groupTable.Value);
         var groupBlock = string.Join(Environment.NewLine,
             "",
             $"\t\t\t\t\t\t\t[{nextGroupIndex}] =",
@@ -138,8 +138,11 @@ internal static class MissionLuaPatcher
         sb.AppendLine("\t\t\t\t\t\t\t\t{");
         sb.AppendLine("\t\t\t\t\t\t\t\t\t[\"visible\"] = false,");
         sb.AppendLine("\t\t\t\t\t\t\t\t\t[\"lateActivation\"] = false,");
+        sb.AppendLine("\t\t\t\t\t\t\t\t\t[\"modulation\"] = 0,");
         sb.AppendLine("\t\t\t\t\t\t\t\t\t[\"tasks\"] = {},");
+        sb.AppendLine("\t\t\t\t\t\t\t\t\t[\"radioSet\"] = false,");
         sb.AppendLine($"\t\t\t\t\t\t\t\t\t[\"task\"] = {LuaString(ToDcsTask(group.Task, category))},");
+        sb.AppendLine("\t\t\t\t\t\t\t\t\t[\"uncontrolled\"] = false,");
         sb.AppendLine($"\t\t\t\t\t\t\t\t\t[\"groupId\"] = {groupId},");
         sb.AppendLine($"\t\t\t\t\t\t\t\t\t[\"name\"] = {LuaString($"WL_AI_{group.Id}")},");
         sb.AppendLine($"\t\t\t\t\t\t\t\t\t[\"x\"] = {LuaNumber(first.X)},");
@@ -166,6 +169,9 @@ internal static class MissionLuaPatcher
         }
 
         sb.AppendLine("\t\t\t\t\t\t\t\t\t}, -- end of [\"units\"]");
+        sb.AppendLine("\t\t\t\t\t\t\t\t\t[\"communication\"] = true,");
+        sb.AppendLine("\t\t\t\t\t\t\t\t\t[\"start_time\"] = 0,");
+        sb.AppendLine($"\t\t\t\t\t\t\t\t\t[\"frequency\"] = {DefaultFrequency(group.Coalition)},");
         sb.AppendLine("\t\t\t\t\t\t\t\t}, -- end of generated AI group");
         return sb.ToString();
     }
@@ -229,7 +235,7 @@ internal static class MissionLuaPatcher
         sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t[\"payload\"] =");
         sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t{");
         sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"pylons\"] = {},");
-        sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"fuel\"] = 100,");
+        sb.AppendLine($"\t\t\t\t\t\t\t\t\t\t\t\t[\"fuel\"] = {DefaultFuel(aircraftType)},");
         sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"flare\"] = 60,");
         sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"chaff\"] = 60,");
         sb.AppendLine("\t\t\t\t\t\t\t\t\t\t\t\t[\"gun\"] = 100,");
@@ -350,13 +356,66 @@ internal static class MissionLuaPatcher
         return -1;
     }
 
-    private static int NextArrayIndex(string tableText)
+    private static int NextDirectArrayIndex(string text, LuaTable table)
     {
-        var matches = System.Text.RegularExpressions.Regex.Matches(tableText, "\\[(?<index>\\d+)\\]\\s*=");
-        return matches
-            .Select(match => int.Parse(match.Groups["index"].Value, CultureInfo.InvariantCulture))
-            .DefaultIfEmpty(0)
-            .Max() + 1;
+        var max = 0;
+        var depth = 0;
+        var inString = false;
+        var escaped = false;
+        for (var index = table.OpenBrace + 1; index < table.CloseBrace; index++)
+        {
+            var character = text[index];
+            if (inString)
+            {
+                if (escaped)
+                {
+                    escaped = false;
+                }
+                else if (character == '\\')
+                {
+                    escaped = true;
+                }
+                else if (character == '"')
+                {
+                    inString = false;
+                }
+
+                continue;
+            }
+
+            if (character == '"')
+            {
+                inString = true;
+                continue;
+            }
+
+            if (character == '{')
+            {
+                depth++;
+                continue;
+            }
+
+            if (character == '}')
+            {
+                depth--;
+                continue;
+            }
+
+            if (depth == 0 && character == '[')
+            {
+                var end = text.IndexOf(']', index + 1);
+                if (end > index && end < table.CloseBrace)
+                {
+                    var token = text[(index + 1)..end];
+                    if (int.TryParse(token, NumberStyles.None, CultureInfo.InvariantCulture, out var value))
+                    {
+                        max = Math.Max(max, value);
+                    }
+                }
+            }
+        }
+
+        return max + 1;
     }
 
     private static string Indent(string text, int tabs)
@@ -393,6 +452,22 @@ internal static class MissionLuaPatcher
             _ => "CAP"
         };
     }
+
+    private static int DefaultFuel(string aircraftType) =>
+        aircraftType switch
+        {
+            "F-16C_50" => 3249,
+            "FA-18C_hornet" => 4900,
+            "Su-27" => 9400,
+            "Su-25T" => 3790,
+            "Ka-50" => 1450,
+            "AH-64D_BLK_II" => 1420,
+            "OH58D" => 400,
+            _ => 3000
+        };
+
+    private static int DefaultFrequency(string coalition) =>
+        coalition.Equals("red", StringComparison.OrdinalIgnoreCase) ? 124 : 305;
 
     private static bool IsHelicopter(string aircraft)
     {
