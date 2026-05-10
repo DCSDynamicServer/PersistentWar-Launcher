@@ -1,4 +1,6 @@
 const els = {
+  tabButtons: document.querySelectorAll("[data-tab-target]"),
+  tabPanels: document.querySelectorAll("[data-tab-panel]"),
   serverPill: document.querySelector("#serverPill"),
   token: document.querySelector("#token"),
   missionPath: document.querySelector("#missionPath"),
@@ -59,6 +61,16 @@ const els = {
 
 let currentState = null;
 let latestGeneratedMission = null;
+
+function activateTab(tabName) {
+  for (const button of els.tabButtons) {
+    button.classList.toggle("active", button.dataset.tabTarget === tabName);
+  }
+
+  for (const panel of els.tabPanels) {
+    panel.classList.toggle("active", panel.dataset.tabPanel === tabName);
+  }
+}
 
 function authHeaders() {
   return {
@@ -674,6 +686,9 @@ els.previewMissionPlanBtn.addEventListener("click", previewMissionPlan);
 els.exportMissionPlanBtn.addEventListener("click", exportMissionPlan);
 els.prepareMissionBtn.addEventListener("click", prepareMission);
 els.inspectTemplateBtn.addEventListener("click", loadTemplateInspection);
+for (const button of els.tabButtons) {
+  button.addEventListener("click", () => activateTab(button.dataset.tabTarget));
+}
 els.refreshBtn.addEventListener("click", async () => {
   await loadStatus();
   await loadScheduler();
