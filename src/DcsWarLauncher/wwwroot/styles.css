@@ -81,6 +81,38 @@ h2 {
   border-color: rgba(94, 212, 138, .5);
 }
 
+.tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 18px;
+  padding-bottom: 2px;
+}
+
+.tab-button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.tab-button.active {
+  border-color: rgba(71, 163, 255, .65);
+  background: rgba(71, 163, 255, .12);
+  color: var(--text);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: grid;
+  gap: 18px;
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
