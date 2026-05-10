@@ -1,7 +1,12 @@
 const els = {
+  tabButtons: document.querySelectorAll("[data-tab-target]"),
+  tabPanels: document.querySelectorAll("[data-tab-panel]"),
   serverPill: document.querySelector("#serverPill"),
   token: document.querySelector("#token"),
   missionPath: document.querySelector("#missionPath"),
+  generatedMissionName: document.querySelector("#generatedMissionName"),
+  generatedMissionMeta: document.querySelector("#generatedMissionMeta"),
+  useGeneratedMissionBtn: document.querySelector("#useGeneratedMissionBtn"),
   startBtn: document.querySelector("#startBtn"),
   stopBtn: document.querySelector("#stopBtn"),
   actionMessage: document.querySelector("#actionMessage"),
@@ -10,6 +15,8 @@ const els = {
   schedulerChecked: document.querySelector("#schedulerChecked"),
   schedulerRun: document.querySelector("#schedulerRun"),
   schedulerMessage: document.querySelector("#schedulerMessage"),
+  campaignName: document.querySelector("#campaignName"),
+  campaignCreated: document.querySelector("#campaignCreated"),
   theater: document.querySelector("#theater"),
   turn: document.querySelector("#turn"),
   phase: document.querySelector("#phase"),
@@ -25,17 +32,45 @@ const els = {
   airSuperiority: document.querySelector("#airSuperiority"),
   advanceTurnBtn: document.querySelector("#advanceTurnBtn"),
   saveStateBtn: document.querySelector("#saveStateBtn"),
+  previewMissionPlanBtn: document.querySelector("#previewMissionPlanBtn"),
+  exportMissionPlanBtn: document.querySelector("#exportMissionPlanBtn"),
+  prepareMissionBtn: document.querySelector("#prepareMissionBtn"),
+  inspectTemplateBtn: document.querySelector("#inspectTemplateBtn"),
   refreshBtn: document.querySelector("#refreshBtn"),
+  templateFile: document.querySelector("#templateFile"),
+  templateTheater: document.querySelector("#templateTheater"),
+  templateStatus: document.querySelector("#templateStatus"),
+  templateSlots: document.querySelector("#templateSlots"),
+  templateBlueSlots: document.querySelector("#templateBlueSlots"),
+  templateRedSlots: document.querySelector("#templateRedSlots"),
+  templateAnchorCount: document.querySelector("#templateAnchorCount"),
+  templateWarnings: document.querySelector("#templateWarnings"),
+  templateAnchors: document.querySelector("#templateAnchors"),
+  templateGroups: document.querySelector("#templateGroups"),
+  missionPlanPreview: document.querySelector("#missionPlanPreview"),
   objectives: document.querySelector("#objectives"),
   frontlineMap: document.querySelector("#frontlineMap"),
   aiPlan: document.querySelector("#aiPlan"),
   missionPackages: document.querySelector("#missionPackages"),
+  turnHistory: document.querySelector("#turnHistory"),
   squadrons: document.querySelector("#squadrons"),
   groundUnits: document.querySelector("#groundUnits"),
-  supplyDepots: document.querySelector("#supplyDepots")
+  supplyDepots: document.querySelector("#supplyDepots"),
+  factories: document.querySelector("#factories")
 };
 
 let currentState = null;
+let latestGeneratedMission = null;
+
+function activateTab(tabName) {
+  for (const button of els.tabButtons) {
+    button.classList.toggle("active", button.dataset.tabTarget === tabName);
+  }
+
+  for (const panel of els.tabPanels) {
+    panel.classList.toggle("active", panel.dataset.tabPanel === tabName);
+  }
+}
 
 function authHeaders() {
   return {
@@ -69,9 +104,46 @@ async function loadScheduler() {
   els.schedulerMessage.textContent = scheduler.lastMessage;
 }
 
+async function loadGeneratedMission() {
+  const response = await fetch("/api/mission/generated/latest");
+  latestGeneratedMission = await response.json();
+
+  if (!latestGeneratedMission.exists) {
+    els.generatedMissionName.textContent = "Keine vorbereitet";
+    els.generatedMissionMeta.textContent = "-";
+    els.useGeneratedMissionBtn.disabled = true;
+    return;
+  }
+
+  const modified = latestGeneratedMission.lastModifiedUtc
+    ? new Date(latestGeneratedMission.lastModifiedUtc).toLocaleString()
+    : "-";
+  const sizeKb = latestGeneratedMission.sizeBytes
+    ? `${Math.round(latestGeneratedMission.sizeBytes / 1024)} KB`
+    : "-";
+
+  els.generatedMissionName.textContent = latestGeneratedMission.mizFileName;
+  els.generatedMissionMeta.textContent = `${sizeKb} - ${modified}`;
+  els.useGeneratedMissionBtn.disabled = false;
+}
+
+function useGeneratedMission() {
+  if (!latestGeneratedMission?.exists || !latestGeneratedMission.mizFilePath) {
+    els.actionMessage.textContent = "Keine vorbereitete Turn-MIZ gefunden.";
+    return;
+  }
+
+  els.missionPath.value = latestGeneratedMission.mizFilePath;
+  els.actionMessage.textContent = "Letzte Turn-MIZ als Startmission uebernommen.";
+}
+
 async function loadState() {
   const response = await fetch("/api/war/state");
   currentState = await response.json();
+  els.campaignName.textContent = currentState.campaignName || "Campaign";
+  els.campaignCreated.textContent = currentState.createdUtc
+    ? new Date(currentState.createdUtc).toLocaleDateString()
+    : "-";
   els.theater.textContent = currentState.theater;
   els.turn.textContent = currentState.turn;
   els.phase.textContent = currentState.phase;
@@ -83,10 +155,70 @@ async function loadState() {
   renderFrontlines();
   renderAiPlan();
   renderMissionPackages();
+  renderTurnHistory();
   renderSquadrons();
   renderGroundUnits();
   renderSupplyDepots();
+  renderFactories();
   updateRemaining();
+}
+
+async function loadTemplateInspection() {
+  const response = await fetch("/api/mission/template/inspect");
+  const template = await response.json();
+  renderTemplateInspection(template);
+}
+
+function renderTemplateInspection(template) {
+  const groups = template.clientGroups || [];
+  const anchors = template.anchors || [];
+  const blueSlots = groups
+    .filter(group => group.coalition === "blue")
+    .reduce((sum, group) => sum + group.clientUnits, 0);
+  const redSlots = groups
+    .filter(group => group.coalition === "red")
+    .reduce((sum, group) => sum + group.clientUnits, 0);
+
+  els.templateFile.textContent = template.fileName || "Keine .miz";
+  els.templateTheater.textContent = template.theater || "-";
+  els.templateStatus.textContent = template.isReadable ? "Lesbar" : "Fehler";
+  els.templateStatus.className = template.isReadable ? "ok-text" : "bad-text";
+  els.templateSlots.textContent = template.clientSlotCount ?? 0;
+  els.templateBlueSlots.textContent = blueSlots;
+  els.templateRedSlots.textContent = redSlots;
+  els.templateAnchorCount.textContent = anchors.length;
+
+  els.templateWarnings.innerHTML = "";
+  for (const warning of template.warnings || []) {
+    const item = document.createElement("p");
+    item.textContent = warning;
+    els.templateWarnings.appendChild(item);
+  }
+
+  els.templateAnchors.innerHTML = "";
+  for (const anchor of anchors) {
+    const item = document.createElement("article");
+    item.className = "template-anchor";
+    const hasCoordinates = Number.isFinite(anchor.x) && Number.isFinite(anchor.y);
+    item.innerHTML = `
+      <strong>${anchor.name}</strong>
+      <span>${anchor.kind}</span>
+      <small>${hasCoordinates ? `x ${Math.round(anchor.x)} / y ${Math.round(anchor.y)}` : "keine Koordinaten erkannt"}</small>
+    `;
+    els.templateAnchors.appendChild(item);
+  }
+
+  els.templateGroups.innerHTML = "";
+  for (const group of groups) {
+    const item = document.createElement("article");
+    item.className = `template-group ${group.coalition}`;
+    item.innerHTML = `
+      <strong>${group.name}</strong>
+      <span>${group.aircraft}</span>
+      <small>${group.clientUnits} Client / ${group.aiUnits} AI</small>
+    `;
+    els.templateGroups.appendChild(item);
+  }
 }
 
 function renderObjectives() {
@@ -191,6 +323,30 @@ function renderSupplyDepots() {
   }
 }
 
+function renderFactories() {
+  els.factories.innerHTML = "";
+  for (const factory of currentState.factories || []) {
+    const card = document.createElement("article");
+    card.className = `factory-card ${factory.coalition}`;
+    card.innerHTML = `
+      <header>
+        <strong>${factory.name}</strong>
+        <span>${factory.status}</span>
+      </header>
+      <div class="squadron-meta">
+        <span>${factory.location}</span>
+        <span>${factory.outputType}</span>
+      </div>
+      ${meter("Health", factory.health, factory.coalition)}
+      <div class="meter-row">
+        <span>Production</span>
+        <strong>${factory.production}</strong>
+      </div>
+    `;
+    els.factories.appendChild(card);
+  }
+}
+
 function meter(label, value, coalition) {
   return `
     <div class="meter-row">
@@ -233,6 +389,41 @@ function renderMissionPackages() {
       <small>${pack.target}</small>
     `;
     els.missionPackages.appendChild(card);
+  }
+}
+
+function renderTurnHistory() {
+  els.turnHistory.innerHTML = "";
+  const history = [...(currentState.turnHistory || [])]
+    .sort((left, right) => right.turn - left.turn)
+    .slice(0, 5);
+
+  if (history.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "Noch keine abgeschlossenen Turns.";
+    els.turnHistory.appendChild(empty);
+    return;
+  }
+
+  for (const entry of history) {
+    const report = entry.battleReport || {};
+    const item = document.createElement("article");
+    item.className = "history-row";
+    item.innerHTML = `
+      <div>
+        <strong>Turn ${entry.turn}</strong>
+        <span>${entry.summary}</span>
+      </div>
+      <dl>
+        <div><dt>Blue</dt><dd>${report.blueMissionSuccess ?? 0}</dd></div>
+        <div><dt>Red</dt><dd>${report.redMissionSuccess ?? 0}</dd></div>
+        <div><dt>B Loss</dt><dd>${report.blueLosses ?? 0}</dd></div>
+        <div><dt>R Loss</dt><dd>${report.redLosses ?? 0}</dd></div>
+        <div><dt>Air</dt><dd>${report.airSuperiority ?? 0}</dd></div>
+      </dl>
+    `;
+    els.turnHistory.appendChild(item);
   }
 }
 
@@ -340,19 +531,177 @@ async function advanceTurn() {
   await loadState();
 }
 
+async function previewMissionPlan() {
+  els.actionMessage.textContent = "Lade Mission Plan Vorschau...";
+  const response = await fetch("/api/mission/preview-plan", {
+    headers: authHeaders()
+  });
+
+  const plan = await response.json().catch(() => null);
+  if (!response.ok || !plan) {
+    els.actionMessage.textContent = "Mission Plan Vorschau konnte nicht geladen werden.";
+    return;
+  }
+
+  renderMissionPlanPreview(plan);
+  els.actionMessage.textContent = `Mission Plan Vorschau: Turn ${plan.turn}`;
+}
+
+function renderMissionPlanPreview(plan) {
+  const bindings = plan.templateBindings || {};
+  const objectiveAnchors = bindings.objectiveAnchors || [];
+  const airbaseAnchors = bindings.airbaseAnchors || [];
+  const frontAnchors = bindings.frontAnchors || [];
+  const missingObjectiveAnchors = bindings.missingObjectiveAnchors || [];
+  const missingAirbaseAnchors = bindings.missingAirbaseAnchors || [];
+  const missingAnchors = [...missingObjectiveAnchors, ...missingAirbaseAnchors];
+
+  els.missionPlanPreview.innerHTML = `
+    <div class="preview-summary">
+      <span>Objective Bindings <strong>${objectiveAnchors.length}</strong></span>
+      <span>Airbase Bindings <strong>${airbaseAnchors.length}</strong></span>
+      <span>Front Anchors <strong>${frontAnchors.length}</strong></span>
+      <span>Fehlende Anker <strong>${missingAnchors.length}</strong></span>
+      <span>Packages <strong>${(plan.flightGroups || []).length}</strong></span>
+    </div>
+    <div class="preview-grid">
+      <section>
+        <h3>Objectives</h3>
+        <div class="preview-list" id="previewObjectiveAnchors"></div>
+      </section>
+      <section>
+        <h3>Front</h3>
+        <div class="preview-list" id="previewFrontAnchors"></div>
+      </section>
+      <section>
+        <h3>Airbases</h3>
+        <div class="preview-list" id="previewAirbaseAnchors"></div>
+      </section>
+      <section>
+        <h3>Fehlende Anker</h3>
+        <div class="preview-list" id="previewMissingAnchors"></div>
+      </section>
+    </div>
+  `;
+
+  const objectiveList = els.missionPlanPreview.querySelector("#previewObjectiveAnchors");
+  for (const anchor of objectiveAnchors) {
+    const item = document.createElement("article");
+    item.className = `preview-item ${anchor.coalition}`;
+    item.innerHTML = `
+      <strong>${anchor.objective}</strong>
+      <span>${anchor.coalition} - ${anchor.anchorName}</span>
+      <small>x ${Math.round(anchor.x)} / y ${Math.round(anchor.y)}</small>
+    `;
+    objectiveList.appendChild(item);
+  }
+
+  const frontList = els.missionPlanPreview.querySelector("#previewFrontAnchors");
+  for (const anchor of frontAnchors) {
+    const item = document.createElement("article");
+    item.className = "preview-item front";
+    item.innerHTML = `
+      <strong>${anchor.anchorName}</strong>
+      <span>Sequence ${anchor.sequence}</span>
+      <small>x ${Math.round(anchor.x)} / y ${Math.round(anchor.y)}</small>
+    `;
+    frontList.appendChild(item);
+  }
+
+  const airbaseList = els.missionPlanPreview.querySelector("#previewAirbaseAnchors");
+  for (const anchor of airbaseAnchors) {
+    const item = document.createElement("article");
+    item.className = "preview-item airbase";
+    item.innerHTML = `
+      <strong>${anchor.airbase}</strong>
+      <span>${anchor.anchorType} - ${anchor.anchorName}</span>
+      <small>x ${Math.round(anchor.x)} / y ${Math.round(anchor.y)}</small>
+    `;
+    airbaseList.appendChild(item);
+  }
+
+  const missingList = els.missionPlanPreview.querySelector("#previewMissingAnchors");
+  for (const missing of missingObjectiveAnchors) {
+    const item = document.createElement("article");
+    item.className = `preview-item missing ${missing.coalition}`;
+    item.innerHTML = `
+      <strong>${missing.objective}</strong>
+      <span>${missing.coalition}</span>
+      <small>${(missing.expectedAnchorNames || []).join(", ")}</small>
+    `;
+    missingList.appendChild(item);
+  }
+
+  for (const missing of missingAirbaseAnchors) {
+    const item = document.createElement("article");
+    item.className = "preview-item missing airbase";
+    item.innerHTML = `
+      <strong>${missing.airbase}</strong>
+      <span>${missing.anchorType}</span>
+      <small>${(missing.expectedAnchorNames || []).join(", ")}</small>
+    `;
+    missingList.appendChild(item);
+  }
+}
+
+async function exportMissionPlan() {
+  els.actionMessage.textContent = "Exportiere Mission Plan...";
+  const response = await fetch("/api/mission/export-plan", {
+    method: "POST",
+    headers: authHeaders()
+  });
+
+  const result = await response.json().catch(() => ({ fileName: null }));
+  if (!response.ok || !result.fileName) {
+    els.actionMessage.textContent = "Mission Plan konnte nicht exportiert werden.";
+    return;
+  }
+
+  els.actionMessage.textContent = `Mission Plan exportiert: ${result.fileName}`;
+}
+
+async function prepareMission() {
+  els.actionMessage.textContent = "Bereite Turn-MIZ vor...";
+  const response = await fetch("/api/mission/prepare", {
+    method: "POST",
+    headers: authHeaders()
+  });
+
+  const result = await response.json().catch(() => ({ mizFileName: null, error: null }));
+  if (!response.ok || !result.mizFileName) {
+    els.actionMessage.textContent = result.error || "Turn-MIZ konnte nicht vorbereitet werden.";
+    return;
+  }
+
+  els.actionMessage.textContent = `Turn-MIZ vorbereitet: ${result.mizFileName}`;
+  await loadGeneratedMission();
+}
+
 els.startBtn.addEventListener("click", startServer);
 els.stopBtn.addEventListener("click", stopServer);
+els.useGeneratedMissionBtn.addEventListener("click", useGeneratedMission);
 els.advanceTurnBtn.addEventListener("click", advanceTurn);
 els.saveStateBtn.addEventListener("click", saveState);
+els.previewMissionPlanBtn.addEventListener("click", previewMissionPlan);
+els.exportMissionPlanBtn.addEventListener("click", exportMissionPlan);
+els.prepareMissionBtn.addEventListener("click", prepareMission);
+els.inspectTemplateBtn.addEventListener("click", loadTemplateInspection);
+for (const button of els.tabButtons) {
+  button.addEventListener("click", () => activateTab(button.dataset.tabTarget));
+}
 els.refreshBtn.addEventListener("click", async () => {
   await loadStatus();
   await loadScheduler();
+  await loadGeneratedMission();
   await loadState();
+  await loadTemplateInspection();
 });
 
 loadStatus();
 loadScheduler();
+loadGeneratedMission();
 loadState();
+loadTemplateInspection();
 setInterval(loadStatus, 5000);
 setInterval(loadScheduler, 10000);
 setInterval(updateRemaining, 30000);

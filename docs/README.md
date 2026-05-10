@@ -122,5 +122,6 @@ Campaign-State. Sobald DCS-Pfade und Mission-Export fertig sind, wird daraus der
 - DCS-Log/Tacview/Event-Parser fuer echte Verluste und Treffer.
 - Liberation-aehnliche Kampagnenlogik fuer Airbases, Squadrons, Pakete und Ground War.
 - Mission-Generator fuer `.miz` Dateien.
+- Template-MIZ-Regeln und Naming-Konventionen: siehe `docs/TEMPLATE_MIZ_GUIDE.md`.
 - LLM/AI-Adapter fuer dynamische Strategie.
 - Rollenmodell fuer Admin, Game Master und Piloten.

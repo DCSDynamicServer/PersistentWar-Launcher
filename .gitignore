@@ -18,3 +18,10 @@ __pycache__/
 
 config.local.json
 settings.local.json
+
+src/DcsWarLauncher/Data/Backups/*
+!src/DcsWarLauncher/Data/Backups/.gitkeep
+src/DcsWarLauncher/Data/Exports/*
+!src/DcsWarLauncher/Data/Exports/.gitkeep
+src/DcsWarLauncher/Data/Generated/*
+!src/DcsWarLauncher/Data/Generated/.gitkeep

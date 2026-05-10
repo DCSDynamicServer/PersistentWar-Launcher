@@ -1,6 +1,7 @@
 using DcsWarLauncher.Campaign;
 using DcsWarLauncher.Domain;
 using DcsWarLauncher.Infrastructure;
+using DcsWarLauncher.Mission;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,8 @@ builder.Services.Configure<SchedulerOptions>(builder.Configuration.GetSection("S
 builder.Services.AddSingleton<StateStore>();
 builder.Services.AddSingleton<DcsProcessService>();
 builder.Services.AddSingleton<TurnEngine>();
+builder.Services.AddSingleton<MissionPlanExporter>();
+builder.Services.AddSingleton<MissionTemplateInspector>();
 builder.Services.AddSingleton<TurnSchedulerState>();
 builder.Services.AddHostedService<TurnSchedulerService>();
 
@@ -84,6 +87,61 @@ app.MapPost("/api/war/advance-turn", async (HttpContext context, StateStore stor
     var nextState = turnEngine.Advance(state, report);
     await store.SaveAsync(nextState);
     return Results.Ok(nextState);
+});
+
+app.MapPost("/api/mission/export-plan", async (HttpContext context, StateStore store, MissionPlanExporter exporter) =>
+{
+    if (!IsAuthorized(context, app.Configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    var state = await store.LoadAsync();
+    var result = await exporter.ExportAsync(state);
+    return Results.Ok(result);
+});
+
+app.MapGet("/api/mission/preview-plan", async (HttpContext context, StateStore store, MissionPlanExporter exporter) =>
+{
+    if (!IsAuthorized(context, app.Configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    var state = await store.LoadAsync();
+    var result = exporter.Preview(state);
+    return Results.Ok(result);
+});
+
+app.MapGet("/api/mission/generated/latest", (MissionPlanExporter exporter) =>
+{
+    var result = exporter.GetLatestGeneratedMission();
+    return Results.Ok(result);
+});
+
+app.MapPost("/api/mission/prepare", async (HttpContext context, StateStore store, MissionPlanExporter exporter) =>
+{
+    if (!IsAuthorized(context, app.Configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    try
+    {
+        var state = await store.LoadAsync();
+        var result = await exporter.PrepareMissionAsync(state);
+        return Results.Ok(result);
+    }
+    catch (FileNotFoundException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+app.MapGet("/api/mission/template/inspect", (MissionTemplateInspector inspector) =>
+{
+    var result = inspector.InspectLatest();
+    return Results.Ok(result);
 });
 
 app.Run();
