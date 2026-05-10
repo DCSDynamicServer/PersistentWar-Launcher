@@ -570,7 +570,14 @@ static void MissionPlanExporterPreparesMissionCopy()
         Directory.CreateDirectory(templatePath);
         CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
         var exporter = new MissionPlanExporter(new TestEnvironment(root));
-        var state = WarState.CreateDefault() with { CampaignId = "test-campaign" };
+        var state = WarState.CreateDefault() with
+        {
+            CampaignId = "test-campaign",
+            MissionPackages =
+            [
+                new("BLUE-TEST", "blue", "Strike", "Kutaisi", "Planning", 2, "Georgian/NATO 11th Fighter Squadron")
+            ]
+        };
 
         var result = exporter.PrepareMissionAsync(state).GetAwaiter().GetResult();
 
@@ -586,6 +593,9 @@ static void MissionPlanExporterPreparesMissionCopy()
         var missionText = reader.ReadToEnd();
         Assert.True(missionText.Contains("DCS Persistent War Launcher", StringComparison.Ordinal), "Expected generated briefing.");
         Assert.True(missionText.Contains("Player slots are preserved", StringComparison.Ordinal), "Expected player slot briefing note.");
+        Assert.True(missionText.Contains("WL_AI_flight-blue-test", StringComparison.Ordinal), "Expected generated AI package group.");
+        Assert.True(missionText.Contains("[\"type\"] = \"F-16C_50\"", StringComparison.Ordinal), "Expected generated AI aircraft type.");
+        Assert.True(missionText.Contains("[\"name\"] = \"WL_FRONT_01\"", StringComparison.Ordinal), "Expected generated route through front anchor.");
     }
     finally
     {
@@ -646,7 +656,7 @@ static string CreateTempRoot()
 static void CreateMinimalMiz(string path)
 {
     using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
-    AddZipEntry(archive, "mission", "mission = {\n\t[\"trig\"] = {\n\t\t[\"actions\"] = {},\n\t\t[\"events\"] = {},\n\t\t[\"custom\"] = {},\n\t\t[\"func\"] = {},\n\t\t[\"flag\"] = {},\n\t\t[\"conditions\"] = {},\n\t\t[\"customStartup\"] = {},\n\t\t[\"funcStartup\"] = {},\n\t},\n\t[\"triggers\"] = {\n\t\t[\"zones\"] = {\n\t\t\t[1] = {\n\t\t\t\t[\"y\"] = 200,\n\t\t\t\t[\"x\"] = 100,\n\t\t\t\t[\"name\"] = \"WL_OBJ_KUTAISI_BLUE\",\n\t\t\t\t[\"radius\"] = 500,\n\t\t\t},\n\t\t\t[2] = {\n\t\t\t\t[\"y\"] = 300,\n\t\t\t\t[\"x\"] = 150,\n\t\t\t\t[\"name\"] = \"WL_FRONT_01\",\n\t\t\t\t[\"radius\"] = 700,\n\t\t\t},\n\t\t\t[3] = {\n\t\t\t\t[\"y\"] = 400,\n\t\t\t\t[\"x\"] = 200,\n\t\t\t\t[\"name\"] = \"WL_OBJ_KRASNODAR_BLUE\",\n\t\t\t\t[\"radius\"] = 500,\n\t\t\t},\n\t\t\t[4] = {\n\t\t\t\t[\"y\"] = 500,\n\t\t\t\t[\"x\"] = 250,\n\t\t\t\t[\"name\"] = \"WL_AIRBASE_KUTAISI\",\n\t\t\t\t[\"radius\"] = 1000,\n\t\t\t},\n\t\t\t[5] = {\n\t\t\t\t[\"y\"] = 550,\n\t\t\t\t[\"x\"] = 300,\n\t\t\t\t[\"name\"] = \"WL_HELI_BASE_KUTAISI_BLUE\",\n\t\t\t\t[\"radius\"] = 800,\n\t\t\t},\n\t\t},\n\t},\n\t[\"descriptionText\"] = \"Template briefing\",\n\t[\"trigrules\"] = {},\n}");
+    AddZipEntry(archive, "mission", "mission = {\n\t[\"trig\"] = {\n\t\t[\"actions\"] = {},\n\t\t[\"events\"] = {},\n\t\t[\"custom\"] = {},\n\t\t[\"func\"] = {},\n\t\t[\"flag\"] = {},\n\t\t[\"conditions\"] = {},\n\t\t[\"customStartup\"] = {},\n\t\t[\"funcStartup\"] = {},\n\t},\n\t[\"triggers\"] = {\n\t\t[\"zones\"] = {\n\t\t\t[1] = {\n\t\t\t\t[\"y\"] = 200,\n\t\t\t\t[\"x\"] = 100,\n\t\t\t\t[\"name\"] = \"WL_OBJ_KUTAISI_BLUE\",\n\t\t\t\t[\"radius\"] = 500,\n\t\t\t},\n\t\t\t[2] = {\n\t\t\t\t[\"y\"] = 300,\n\t\t\t\t[\"x\"] = 150,\n\t\t\t\t[\"name\"] = \"WL_FRONT_01\",\n\t\t\t\t[\"radius\"] = 700,\n\t\t\t},\n\t\t\t[3] = {\n\t\t\t\t[\"y\"] = 400,\n\t\t\t\t[\"x\"] = 200,\n\t\t\t\t[\"name\"] = \"WL_OBJ_KRASNODAR_BLUE\",\n\t\t\t\t[\"radius\"] = 500,\n\t\t\t},\n\t\t\t[4] = {\n\t\t\t\t[\"y\"] = 500,\n\t\t\t\t[\"x\"] = 250,\n\t\t\t\t[\"name\"] = \"WL_AIRBASE_KUTAISI\",\n\t\t\t\t[\"radius\"] = 1000,\n\t\t\t},\n\t\t\t[5] = {\n\t\t\t\t[\"y\"] = 550,\n\t\t\t\t[\"x\"] = 300,\n\t\t\t\t[\"name\"] = \"WL_HELI_BASE_KUTAISI_BLUE\",\n\t\t\t\t[\"radius\"] = 800,\n\t\t\t},\n\t\t},\n\t},\n\t[\"coalition\"] = {\n\t\t[\"blue\"] = {\n\t\t\t[\"name\"] = \"blue\",\n\t\t\t[\"country\"] = {\n\t\t\t\t[1] = {\n\t\t\t\t\t[\"name\"] = \"USA\",\n\t\t\t\t\t[\"id\"] = 2,\n\t\t\t\t},\n\t\t\t},\n\t\t},\n\t\t[\"red\"] = {\n\t\t\t[\"name\"] = \"red\",\n\t\t\t[\"country\"] = {\n\t\t\t\t[1] = {\n\t\t\t\t\t[\"name\"] = \"Russia\",\n\t\t\t\t\t[\"id\"] = 0,\n\t\t\t\t},\n\t\t\t},\n\t\t},\n\t},\n\t[\"descriptionText\"] = \"Template briefing\",\n\t[\"trigrules\"] = {},\n}");
     AddZipEntry(archive, "warehouses", "warehouses = {}");
     AddZipEntry(archive, "options", "options = {}");
     AddZipEntry(archive, "theatre", "Caucasus");

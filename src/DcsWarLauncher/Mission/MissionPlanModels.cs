@@ -78,6 +78,7 @@ public sealed record FlightGroupPlan(
     string Task,
     string Target,
     string Squadron,
+    string Aircraft,
     int AircraftCount,
     string Status,
     string? DepartureAnchor,
