@@ -86,6 +86,7 @@ echo Building launcher...
 if errorlevel 1 goto failed
 
 set "APP_EXE=%REPO_DIR%src\DcsWarLauncher\bin\Release\net8.0\DcsWarLauncher.exe"
+set "APP_DIR=%REPO_DIR%src\DcsWarLauncher\bin\Release\net8.0"
 if not exist "%APP_EXE%" (
     echo ERROR: Built launcher executable not found:
     echo %APP_EXE%
@@ -93,12 +94,14 @@ if not exist "%APP_EXE%" (
 )
 
 echo Starting launcher...
-start "" "%APP_EXE%"
+start "" /D "%APP_DIR%" "%APP_EXE%"
 
 echo.
 echo Update complete.
 echo Launcher started from:
 echo %APP_EXE%
+echo Working directory:
+echo %APP_DIR%
 echo.
 popd >nul
 pause
