@@ -124,7 +124,8 @@ internal static class MissionLuaPatcher
         var groupBlock = string.Join(Environment.NewLine,
             "",
             $"\t\t\t\t\t\t\t[{nextGroupIndex}] =",
-            Indent(groupLua, 7));
+            Indent(groupLua, 7),
+            "");
 
         return missionText.Insert(groupTable.Value.CloseBrace, groupBlock);
     }
