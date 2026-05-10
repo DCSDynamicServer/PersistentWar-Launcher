@@ -6,6 +6,7 @@ title DCS War Launcher Update
 set "APP_PROCESS=DcsWarLauncher.exe"
 set "START_DIR=%~dp0"
 set "REPO_DIR=%START_DIR%"
+set "DOTNET_EXE=dotnet"
 
 echo.
 echo === DCS War Launcher Update ===
@@ -20,8 +21,12 @@ if errorlevel 1 (
 
 where dotnet >nul 2>nul
 if errorlevel 1 (
-    echo ERROR: dotnet was not found in PATH.
-    goto failed
+    if exist "%ProgramFiles%\dotnet\dotnet.exe" (
+        set "DOTNET_EXE=%ProgramFiles%\dotnet\dotnet.exe"
+    ) else (
+        echo ERROR: dotnet was not found in PATH.
+        goto failed
+    )
 )
 
 :find_repo
@@ -43,7 +48,14 @@ if not exist "%PROJECT_FILE%" (
     goto failed
 )
 
-for /f "usebackq delims=" %%B in (`git -C "%REPO_DIR%" rev-parse --abbrev-ref HEAD`) do set "BRANCH=%%B"
+pushd "%REPO_DIR%" >nul
+if errorlevel 1 (
+    echo ERROR: Could not enter repository folder:
+    echo %REPO_DIR%
+    goto failed
+)
+
+for /f "delims=" %%B in ('git rev-parse --abbrev-ref HEAD') do set "BRANCH=%%B"
 if not "%~1"=="" set "BRANCH=%~1"
 
 echo Repository: %REPO_DIR%
@@ -51,15 +63,15 @@ echo Branch:     %BRANCH%
 echo.
 
 echo Fetching latest changes...
-git -C "%REPO_DIR%" fetch origin
+git fetch origin
 if errorlevel 1 goto failed
 
 echo Switching branch...
-git -C "%REPO_DIR%" switch "%BRANCH%"
+git switch "%BRANCH%"
 if errorlevel 1 goto failed
 
 echo Pulling latest version...
-git -C "%REPO_DIR%" pull --ff-only origin "%BRANCH%"
+git pull --ff-only origin "%BRANCH%"
 if errorlevel 1 goto failed
 
 tasklist /FI "IMAGENAME eq %APP_PROCESS%" 2>nul | find /I "%APP_PROCESS%" >nul
@@ -70,7 +82,7 @@ if not errorlevel 1 (
 )
 
 echo Building launcher...
-dotnet build "%PROJECT_FILE%" -c Release
+"%DOTNET_EXE%" build "%PROJECT_FILE%" -c Release
 if errorlevel 1 goto failed
 
 set "APP_EXE=%REPO_DIR%src\DcsWarLauncher\bin\Release\net8.0\DcsWarLauncher.exe"
@@ -88,6 +100,7 @@ echo Update complete.
 echo Launcher started from:
 echo %APP_EXE%
 echo.
+popd >nul
 pause
 exit /b 0
 
@@ -96,5 +109,6 @@ echo.
 echo Update failed.
 echo Check the message above and try again.
 echo.
+popd >nul 2>nul
 pause
 exit /b 1
