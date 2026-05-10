@@ -5,6 +5,7 @@ using DcsWarLauncher.Mission;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
 using System.IO.Compression;
+using System.Text.Json;
 
 var tests = new (string Name, Action Test)[]
 {
@@ -34,6 +35,7 @@ var tests = new (string Name, Action Test)[]
     ("Turn engine appends battle report history", TurnEngineAppendsBattleReportHistory),
     ("Turn history keeps latest twenty entries", TurnHistoryKeepsLatestTwentyEntries),
     ("Mission plan exporter writes campaign plan", MissionPlanExporterWritesCampaignPlan),
+    ("Mission plan routes packages through anchors", MissionPlanRoutesPackagesThroughAnchors),
     ("Mission plan exporter prepares mission copy", MissionPlanExporterPreparesMissionCopy),
     ("Mission template inspector reports WL anchors", MissionTemplateInspectorReportsWlAnchors),
     ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
@@ -513,6 +515,45 @@ static void MissionPlanExporterWritesCampaignPlan()
         Assert.True(json.Contains("WL_FARP_KUTAISI_BLUE"), "Expected missing FARP anchor name.");
         Assert.True(json.Contains("WL_FRONT_01"), "Expected front anchor binding.");
         Assert.True(json.Contains("target-kutaisi-depot"), "Expected stable target ids.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionPlanRoutesPackagesThroughAnchors()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var templatePath = Path.Combine(root, "Data", "Templates");
+        Directory.CreateDirectory(templatePath);
+        CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
+        var exporter = new MissionPlanExporter(new TestEnvironment(root));
+        var state = WarState.CreateDefault() with
+        {
+            CampaignId = "test-campaign",
+            MissionPackages =
+            [
+                new("BLUE-TEST", "blue", "Strike", "Kutaisi", "Planning", 2, "Georgian/NATO 11th Fighter Squadron")
+            ]
+        };
+
+        var result = exporter.ExportAsync(state).GetAwaiter().GetResult();
+        var json = File.ReadAllText(result.FilePath);
+        var plan = JsonSerializer.Deserialize<MissionPlan>(
+            json,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? throw new InvalidOperationException("Expected mission plan.");
+        var flight = plan.FlightGroups.Single();
+
+        Assert.Equal("WL_AIRBASE_KUTAISI", flight.DepartureAnchor);
+        Assert.Equal("WL_OBJ_KUTAISI_BLUE", flight.TargetAnchor);
+        Assert.Equal(3, flight.Route.Count);
+        Assert.True(flight.Route.Any(waypoint => waypoint.Role == "frontline" && waypoint.Name == "WL_FRONT_01"), "Expected package route through front anchor.");
     }
     finally
     {

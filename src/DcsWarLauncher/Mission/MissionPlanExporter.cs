@@ -17,6 +17,8 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
     private readonly string _templatePath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Templates");
     private readonly string _generatedPath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Generated");
 
+    private sealed record ResolvedAnchor(string AnchorName, double X, double Y);
+
     public async Task<MissionExportResult> ExportAsync(WarState state)
     {
         state = state.Normalize();
@@ -106,15 +108,10 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
                 segment.Momentum))
             .ToList();
 
+        var templateBindings = BuildTemplateBindings(state, anchors);
+
         var flightGroups = state.MissionPackages
-            .Select(package => new FlightGroupPlan(
-                StableId("flight", package.Id),
-                package.Coalition,
-                package.Task,
-                package.Target,
-                package.Squadron,
-                package.AircraftCount,
-                package.Status))
+            .Select(package => BuildFlightGroupPlan(package, state, templateBindings))
             .ToList();
 
         var groundGroups = state.GroundUnits
@@ -162,7 +159,7 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
                 "PatchTemplate",
                 "_CLIENT_",
                 "Client/player slot groups are preserved from the template mission."),
-            BuildTemplateBindings(state, anchors),
+            templateBindings,
             state.Airbases,
             state.Objectives,
             frontlineMarkers,
@@ -170,6 +167,30 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
             groundGroups,
             supplyTargets,
             factoryTargets);
+    }
+
+    private static FlightGroupPlan BuildFlightGroupPlan(
+        MissionPackageState package,
+        WarState state,
+        TemplateBindings bindings)
+    {
+        var squadron = state.Squadrons.FirstOrDefault(candidate =>
+            candidate.Name.Equals(package.Squadron, StringComparison.OrdinalIgnoreCase));
+        var departure = ResolveDepartureAnchor(package, squadron, bindings);
+        var target = ResolveTargetAnchor(package, bindings);
+        var route = BuildRoute(departure, target, bindings.FrontAnchors);
+
+        return new FlightGroupPlan(
+            StableId("flight", package.Id),
+            package.Coalition,
+            package.Task,
+            package.Target,
+            package.Squadron,
+            package.AircraftCount,
+            package.Status,
+            departure?.AnchorName,
+            target?.AnchorName,
+            route);
     }
 
     private static TemplateBindings BuildTemplateBindings(
@@ -266,6 +287,189 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
             missingObjectiveAnchors,
             missingAirbaseAnchors);
     }
+
+    private static ResolvedAnchor? ResolveDepartureAnchor(
+        MissionPackageState package,
+        SquadronState? squadron,
+        TemplateBindings bindings)
+    {
+        if (squadron is null)
+        {
+            return null;
+        }
+
+        var preferredTypes = PreferredDepartureAnchorTypes(package.Coalition, squadron.Aircraft).ToList();
+        var anchorsAtHomeBase = bindings.AirbaseAnchors
+            .Where(anchor => anchor.Airbase.Equals(squadron.HomeBase, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var preferredType in preferredTypes)
+        {
+            var match = anchorsAtHomeBase.FirstOrDefault(anchor =>
+                anchor.AnchorType.Equals(preferredType, StringComparison.OrdinalIgnoreCase));
+            if (match is not null)
+            {
+                return new ResolvedAnchor(match.AnchorName, match.X, match.Y);
+            }
+        }
+
+        var fallback = anchorsAtHomeBase.FirstOrDefault()
+            ?? bindings.AirbaseAnchors.FirstOrDefault(anchor =>
+                anchor.Airbase.Equals(package.Target, StringComparison.OrdinalIgnoreCase) &&
+                anchor.AnchorType.Equals("airbase", StringComparison.OrdinalIgnoreCase))
+            ?? bindings.AirbaseAnchors.FirstOrDefault(anchor =>
+                anchor.AnchorType.Equals("airbase", StringComparison.OrdinalIgnoreCase));
+
+        return fallback is null
+            ? null
+            : new ResolvedAnchor(fallback.AnchorName, fallback.X, fallback.Y);
+    }
+
+    private static ResolvedAnchor? ResolveTargetAnchor(
+        MissionPackageState package,
+        TemplateBindings bindings)
+    {
+        var targetCoalitions = PreferredTargetCoalitions(package).ToList();
+        foreach (var coalition in targetCoalitions)
+        {
+            var match = bindings.ObjectiveAnchors.FirstOrDefault(anchor =>
+                anchor.Objective.Equals(package.Target, StringComparison.OrdinalIgnoreCase) &&
+                anchor.Coalition.Equals(coalition, StringComparison.OrdinalIgnoreCase));
+            if (match is not null)
+            {
+                return new ResolvedAnchor(match.AnchorName, match.X, match.Y);
+            }
+        }
+
+        var objectiveFallback = bindings.ObjectiveAnchors.FirstOrDefault(anchor =>
+            package.Target.Contains(anchor.Objective, StringComparison.OrdinalIgnoreCase) ||
+            anchor.Objective.Contains(package.Target, StringComparison.OrdinalIgnoreCase));
+        if (objectiveFallback is not null)
+        {
+            return new ResolvedAnchor(objectiveFallback.AnchorName, objectiveFallback.X, objectiveFallback.Y);
+        }
+
+        var airbaseFallback = bindings.AirbaseAnchors.FirstOrDefault(anchor =>
+            anchor.Airbase.Equals(package.Target, StringComparison.OrdinalIgnoreCase) &&
+            anchor.AnchorType.Equals("airbase", StringComparison.OrdinalIgnoreCase));
+        return airbaseFallback is null
+            ? null
+            : new ResolvedAnchor(airbaseFallback.AnchorName, airbaseFallback.X, airbaseFallback.Y);
+    }
+
+    private static List<RouteWaypointPlan> BuildRoute(
+        ResolvedAnchor? departure,
+        ResolvedAnchor? target,
+        IReadOnlyCollection<FrontAnchorBinding> frontAnchors)
+    {
+        var route = new List<RouteWaypointPlan>();
+        if (departure is not null)
+        {
+            route.Add(new RouteWaypointPlan(departure.AnchorName, "departure", departure.X, departure.Y));
+        }
+
+        var frontAnchor = SelectRouteFrontAnchor(departure, target, frontAnchors);
+        if (frontAnchor is not null)
+        {
+            route.Add(new RouteWaypointPlan(frontAnchor.AnchorName, "frontline", frontAnchor.X, frontAnchor.Y));
+        }
+
+        if (target is not null)
+        {
+            route.Add(new RouteWaypointPlan(target.AnchorName, "target", target.X, target.Y));
+        }
+
+        return route;
+    }
+
+    private static FrontAnchorBinding? SelectRouteFrontAnchor(
+        ResolvedAnchor? departure,
+        ResolvedAnchor? target,
+        IReadOnlyCollection<FrontAnchorBinding> frontAnchors)
+    {
+        if (frontAnchors.Count == 0)
+        {
+            return null;
+        }
+
+        if (departure is null && target is null)
+        {
+            return frontAnchors.OrderBy(anchor => anchor.Sequence).FirstOrDefault();
+        }
+
+        return frontAnchors
+            .OrderBy(anchor => RouteScore(anchor, departure, target))
+            .ThenBy(anchor => anchor.Sequence)
+            .FirstOrDefault();
+    }
+
+    private static double RouteScore(
+        FrontAnchorBinding anchor,
+        ResolvedAnchor? departure,
+        ResolvedAnchor? target)
+    {
+        var score = 0d;
+        if (departure is not null)
+        {
+            score += Distance(anchor.X, anchor.Y, departure.X, departure.Y);
+        }
+
+        if (target is not null)
+        {
+            score += Distance(anchor.X, anchor.Y, target.X, target.Y);
+        }
+
+        return score;
+    }
+
+    private static double Distance(double ax, double ay, double bx, double by)
+    {
+        var x = ax - bx;
+        var y = ay - by;
+        return Math.Sqrt(x * x + y * y);
+    }
+
+    private static IEnumerable<string> PreferredDepartureAnchorTypes(string coalition, string aircraft)
+    {
+        if (IsHelicopter(aircraft))
+        {
+            yield return $"farp-{coalition}";
+            yield return $"heli-{coalition}";
+        }
+
+        yield return "airbase";
+        yield return $"heli-{coalition}";
+        yield return $"farp-{coalition}";
+    }
+
+    private static IEnumerable<string> PreferredTargetCoalitions(MissionPackageState package)
+    {
+        if (IsOffensiveTask(package.Task))
+        {
+            yield return OpposingCoalition(package.Coalition);
+        }
+
+        yield return package.Coalition;
+        yield return OpposingCoalition(package.Coalition);
+    }
+
+    private static bool IsOffensiveTask(string task) =>
+        task.Contains("strike", StringComparison.OrdinalIgnoreCase) ||
+        task.Contains("cas", StringComparison.OrdinalIgnoreCase) ||
+        task.Contains("oca", StringComparison.OrdinalIgnoreCase) ||
+        task.Contains("intercept", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsHelicopter(string aircraft)
+    {
+        var normalized = aircraft.Replace("-", "", StringComparison.Ordinal).Replace(" ", "", StringComparison.Ordinal);
+        return normalized.StartsWith("AH", StringComparison.OrdinalIgnoreCase) ||
+            normalized.StartsWith("OH", StringComparison.OrdinalIgnoreCase) ||
+            normalized.StartsWith("KA", StringComparison.OrdinalIgnoreCase) ||
+            normalized.StartsWith("MI", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string OpposingCoalition(string coalition) =>
+        coalition.Equals("blue", StringComparison.OrdinalIgnoreCase) ? "red" : "blue";
 
     private static string SanitizeFileName(string value)
     {

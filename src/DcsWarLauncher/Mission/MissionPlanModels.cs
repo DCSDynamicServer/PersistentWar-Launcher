@@ -79,7 +79,16 @@ public sealed record FlightGroupPlan(
     string Target,
     string Squadron,
     int AircraftCount,
-    string Status);
+    string Status,
+    string? DepartureAnchor,
+    string? TargetAnchor,
+    IReadOnlyCollection<RouteWaypointPlan> Route);
+
+public sealed record RouteWaypointPlan(
+    string Name,
+    string Role,
+    double X,
+    double Y);
 
 public sealed record GroundGroupPlan(
     string Id,
