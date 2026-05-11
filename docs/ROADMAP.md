@@ -56,6 +56,7 @@
 
 - Automation-Run kapseln: abgelaufenen Turn auswerten, naechste Turn-MIZ vorbereiten und optional genau diese MIZ starten.
 - Turn-MIZ vor Serverstart in festen DCS-Missionspfad deployen und alte War-Launcher-Turn-MIZ-Dateien bereinigen.
+- DCS `serverSettings.lua` patchen, damit `missionList[1]` auf die deployed Turn-MIZ zeigt und das WebGUI im Betrieb umgangen wird.
 - Windows-Service Installation.
 - Log-Rotation und Healthchecks.
 - Backup des Campaign-State.

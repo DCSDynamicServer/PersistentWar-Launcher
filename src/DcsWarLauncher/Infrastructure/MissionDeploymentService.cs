@@ -19,7 +19,8 @@ public sealed class MissionDeploymentService(IConfiguration configuration, ILogg
                 false,
                 "Prepared Turn-MIZ does not exist.",
                 null,
-                0));
+                0,
+                false));
         }
 
         var targetPath = ResolveDeploymentTarget(sourceMissionFileName);
@@ -29,7 +30,8 @@ public sealed class MissionDeploymentService(IConfiguration configuration, ILogg
                 true,
                 "No server mission deploy target configured; using generated Turn-MIZ directly.",
                 sourceMissionPath,
-                0));
+                0,
+                false));
         }
 
         var targetDirectory = Path.GetDirectoryName(targetPath);
@@ -39,19 +41,22 @@ public sealed class MissionDeploymentService(IConfiguration configuration, ILogg
                 false,
                 "Server mission deploy target has no directory.",
                 null,
-                0));
+                0,
+                false));
         }
 
         Directory.CreateDirectory(targetDirectory);
         var deleted = CleanupOldTurnMissions(targetDirectory, targetPath);
         File.Copy(sourceMissionPath, targetPath, overwrite: true);
+        var serverSettingsPatched = PatchServerSettings(targetPath);
         logger.LogInformation("Deployed mission {SourceMission} to {TargetMission}", sourceMissionPath, targetPath);
 
         return Task.FromResult(new MissionDeploymentResult(
             true,
-            $"Deployed Turn-MIZ to {targetPath}; removed {deleted} old Turn-MIZ file(s).",
+            $"Deployed Turn-MIZ to {targetPath}; removed {deleted} old Turn-MIZ file(s); serverSettings patched: {serverSettingsPatched}.",
             targetPath,
-            deleted));
+            deleted,
+            serverSettingsPatched));
     }
 
     public string ResolveDeploymentTarget(string sourceMissionFileName = "persistent-war-current.miz")
@@ -72,6 +77,34 @@ public sealed class MissionDeploymentService(IConfiguration configuration, ILogg
         return string.IsNullOrWhiteSpace(defaultMissionPath)
             ? ""
             : defaultMissionPath;
+    }
+
+    private bool PatchServerSettings(string missionPath)
+    {
+        if (!configuration.GetValue("Launcher:PatchServerSettings", true))
+        {
+            return false;
+        }
+
+        var serverSettingsPath = configuration["Launcher:ServerSettingsPath"];
+        if (string.IsNullOrWhiteSpace(serverSettingsPath))
+        {
+            return false;
+        }
+
+        var directory = Path.GetDirectoryName(serverSettingsPath);
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return false;
+        }
+
+        Directory.CreateDirectory(directory);
+        var existing = File.Exists(serverSettingsPath)
+            ? File.ReadAllText(serverSettingsPath)
+            : "settings = {}";
+        var patched = DcsServerSettingsPatcher.PatchMissionList(existing, missionPath);
+        File.WriteAllText(serverSettingsPath, patched);
+        return true;
     }
 
     private int CleanupOldTurnMissions(string targetDirectory, string targetPath)

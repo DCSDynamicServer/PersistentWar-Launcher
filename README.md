@@ -51,6 +51,9 @@ Empfohlene Server-Mission-Strategie:
 - Entweder `DefaultMissionPath` zeigt direkt auf die feste Server-MIZ, z.B. `...\Missions\persistent-war-current.miz`.
 - Oder `ServerMissionDirectory` zeigt auf den DCS-Missionsordner und `DeployedMissionFileName` bleibt fest, z.B. `persistent-war-current.miz`.
 - `CleanupOldTurnMissions` bleibt aktiv.
+- `ServerSettingsPath` zeigt auf `Saved Games\<DCS-Instanz>\Config\serverSettings.lua`.
+- `PatchServerSettings` bleibt aktiv.
+- Der Launcher setzt `missionList[1]` auf die feste deployed MIZ.
 - DCS startet immer die feste deployed MIZ, nicht zufaellig eine alte Turn-MIZ.
 
 ## Wichtiger v0.08 Stand

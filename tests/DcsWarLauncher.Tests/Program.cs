@@ -50,6 +50,7 @@ var tests = new (string Name, Action Test)[]
     ("Turn automation prepares next mission for expired turn", TurnAutomationPreparesNextMissionForExpiredTurn),
     ("Turn automation blocks invalid mission result", TurnAutomationBlocksInvalidMissionResult),
     ("Mission deployment replaces old turn missions", MissionDeploymentReplacesOldTurnMissions),
+    ("DCS server settings patcher updates mission list", DcsServerSettingsPatcherUpdatesMissionList),
     ("DCS config check reports safe mode", DcsConfigCheckReportsSafeMode),
     ("Mission template inspector reports WL anchors", MissionTemplateInspectorReportsWlAnchors),
     ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
@@ -1028,8 +1029,11 @@ static void MissionDeploymentReplacesOldTurnMissions()
     {
         var sourcePath = Path.Combine(root, "generated-turn.miz");
         var serverMissionDirectory = Path.Combine(root, "ServerMissions");
+        var serverSettingsPath = Path.Combine(root, "Saved Games", "DCS.server", "Config", "serverSettings.lua");
         Directory.CreateDirectory(serverMissionDirectory);
+        Directory.CreateDirectory(Path.GetDirectoryName(serverSettingsPath)!);
         File.WriteAllText(sourcePath, "new miz");
+        File.WriteAllText(serverSettingsPath, "settings = {\n\t[\"missionList\"] = \n\t{\n\t\t[1] = \"old.miz\",\n\t}, -- end of [\"missionList\"]\n}");
         File.WriteAllText(Path.Combine(serverMissionDirectory, "campaign-old-turn-0001.miz"), "old");
         File.WriteAllText(Path.Combine(serverMissionDirectory, "war-launcher-turn-0001.miz"), "old");
         File.WriteAllText(Path.Combine(serverMissionDirectory, "keep-user-mission.miz"), "keep");
@@ -1039,7 +1043,9 @@ static void MissionDeploymentReplacesOldTurnMissions()
             {
                 ["Launcher:ServerMissionDirectory"] = serverMissionDirectory,
                 ["Launcher:DeployedMissionFileName"] = "persistent-war-current.miz",
-                ["Launcher:CleanupOldTurnMissions"] = "true"
+                ["Launcher:CleanupOldTurnMissions"] = "true",
+                ["Launcher:ServerSettingsPath"] = serverSettingsPath,
+                ["Launcher:PatchServerSettings"] = "true"
             })
             .Build();
 
@@ -1050,7 +1056,9 @@ static void MissionDeploymentReplacesOldTurnMissions()
 
         Assert.True(deployment.Success, "Expected deployment to succeed.");
         Assert.Equal(2, deployment.DeletedOldMissions);
+        Assert.True(deployment.ServerSettingsPatched, "Expected serverSettings.lua to be patched.");
         Assert.True(File.Exists(Path.Combine(serverMissionDirectory, "persistent-war-current.miz")), "Expected fixed deployed mission file.");
+        Assert.True(File.ReadAllText(serverSettingsPath).Contains("persistent-war-current.miz", StringComparison.Ordinal), "Expected serverSettings missionList to reference deployed mission.");
         Assert.True(!File.Exists(Path.Combine(serverMissionDirectory, "campaign-old-turn-0001.miz")), "Expected old campaign turn file to be removed.");
         Assert.True(!File.Exists(Path.Combine(serverMissionDirectory, "war-launcher-turn-0001.miz")), "Expected old war launcher turn file to be removed.");
         Assert.True(File.Exists(Path.Combine(serverMissionDirectory, "keep-user-mission.miz")), "Expected unrelated user mission to remain.");
@@ -1061,6 +1069,16 @@ static void MissionDeploymentReplacesOldTurnMissions()
     }
 }
 
+static void DcsServerSettingsPatcherUpdatesMissionList()
+{
+    var patched = DcsServerSettingsPatcher.PatchMissionList(
+        "settings = {\n\t[\"name\"] = \"Test\",\n\t[\"missionList\"] = \n\t{\n\t\t[1] = \"old.miz\",\n\t}, -- end of [\"missionList\"]\n}",
+        @"C:\DCS\Missions\persistent-war-current.miz");
+
+    Assert.True(patched.Contains(@"C:\\DCS\\Missions\\persistent-war-current.miz", StringComparison.Ordinal), "Expected escaped deployed mission path.");
+    Assert.True(!patched.Contains("old.miz", StringComparison.Ordinal), "Expected old mission path to be replaced.");
+}
+
 static void DcsConfigCheckReportsSafeMode()
 {
     var root = CreateTempRoot();
@@ -1069,9 +1087,12 @@ static void DcsConfigCheckReportsSafeMode()
         var exePath = Path.Combine(root, "DCS.exe");
         var missionPath = Path.Combine(root, "test.miz");
         var serverMissionDirectory = Path.Combine(root, "ServerMissions");
+        var serverSettingsPath = Path.Combine(root, "Saved Games", "DCS.server", "Config", "serverSettings.lua");
         Directory.CreateDirectory(serverMissionDirectory);
+        Directory.CreateDirectory(Path.GetDirectoryName(serverSettingsPath)!);
         File.WriteAllText(exePath, "");
         File.WriteAllText(missionPath, "");
+        File.WriteAllText(serverSettingsPath, "settings = {}");
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -1081,6 +1102,8 @@ static void DcsConfigCheckReportsSafeMode()
                 ["Launcher:ServerMissionDirectory"] = serverMissionDirectory,
                 ["Launcher:DeployedMissionFileName"] = "persistent-war-current.miz",
                 ["Launcher:CleanupOldTurnMissions"] = "true",
+                ["Launcher:ServerSettingsPath"] = serverSettingsPath,
+                ["Launcher:PatchServerSettings"] = "true",
                 ["Launcher:StartArguments"] = "--server --norender -w DCS.openbeta \"{mission}\"",
                 ["Launcher:RemoteToken"] = "real-token",
                 ["Scheduler:Enabled"] = "true",
@@ -1099,6 +1122,9 @@ static void DcsConfigCheckReportsSafeMode()
         Assert.True(check.DeploymentDirectoryExists, "Expected deployment directory to exist.");
         Assert.True(check.DeploymentTargetPath.EndsWith("persistent-war-current.miz", StringComparison.OrdinalIgnoreCase), "Expected fixed deploy target.");
         Assert.True(check.CleanupOldTurnMissions, "Expected cleanup to be active.");
+        Assert.True(check.ServerSettingsConfigured, "Expected serverSettings.lua to be configured.");
+        Assert.True(check.ServerSettingsExists, "Expected serverSettings.lua to exist.");
+        Assert.True(check.PatchServerSettings, "Expected serverSettings patching to be active.");
         Assert.True(check.RemoteTokenConfigured, "Expected remote token to be configured.");
         Assert.Equal("Safe automation", check.Mode);
         Assert.True(!check.AutoStartServer, "Expected AutoStart to remain off.");

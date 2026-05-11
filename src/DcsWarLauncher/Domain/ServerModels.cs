@@ -7,6 +7,7 @@ public sealed record LauncherOptions(
     string RemoteToken,
     string? ServerMissionDirectory = null,
     string? DeployedMissionFileName = null,
+    string? ServerSettingsPath = null,
     bool CleanupOldTurnMissions = true);
 
 public sealed class SchedulerOptions
@@ -40,6 +41,9 @@ public sealed record DcsConfigCheck(
     bool DeploymentDirectoryExists,
     string DeploymentTargetPath,
     bool CleanupOldTurnMissions,
+    bool ServerSettingsConfigured,
+    bool ServerSettingsExists,
+    bool PatchServerSettings,
     bool SchedulerEnabled,
     bool AutoStopServer,
     bool AutoStartServer,
@@ -78,4 +82,5 @@ public sealed record MissionDeploymentResult(
     bool Success,
     string Message,
     string? MissionPath,
-    int DeletedOldMissions);
+    int DeletedOldMissions,
+    bool ServerSettingsPatched);

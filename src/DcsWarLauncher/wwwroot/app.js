@@ -30,6 +30,8 @@ const els = {
   configDeployTarget: document.querySelector("#configDeployTarget"),
   configDeployDirectory: document.querySelector("#configDeployDirectory"),
   configCleanup: document.querySelector("#configCleanup"),
+  configServerSettings: document.querySelector("#configServerSettings"),
+  configMissionListPatch: document.querySelector("#configMissionListPatch"),
   configWarnings: document.querySelector("#configWarnings"),
   campaignName: document.querySelector("#campaignName"),
   campaignCreated: document.querySelector("#campaignCreated"),
@@ -155,6 +157,10 @@ async function loadConfigCheck() {
   els.configDeployDirectory.className = config.deploymentDirectoryExists ? "ok-text" : "warn-text";
   els.configCleanup.textContent = config.cleanupOldTurnMissions ? "Aktiv" : "Aus";
   els.configCleanup.className = config.cleanupOldTurnMissions ? "ok-text" : "warn-text";
+  els.configServerSettings.textContent = config.serverSettingsExists ? "OK" : config.serverSettingsConfigured ? "Wird erstellt" : "Offen";
+  els.configServerSettings.className = config.serverSettingsExists ? "ok-text" : config.serverSettingsConfigured ? "warn-text" : "bad-text";
+  els.configMissionListPatch.textContent = config.patchServerSettings ? "Aktiv" : "Aus";
+  els.configMissionListPatch.className = config.patchServerSettings ? "ok-text" : "warn-text";
 
   els.configWarnings.innerHTML = "";
   for (const warning of config.warnings || []) {

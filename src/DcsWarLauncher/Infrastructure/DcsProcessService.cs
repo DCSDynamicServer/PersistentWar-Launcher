@@ -29,6 +29,8 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
         var serverMissionDirectory = configuration["Launcher:ServerMissionDirectory"] ?? "";
         var deployedMissionFileName = configuration["Launcher:DeployedMissionFileName"] ?? "persistent-war-current.miz";
         var cleanupOldTurnMissions = configuration.GetValue("Launcher:CleanupOldTurnMissions", true);
+        var serverSettingsPath = configuration["Launcher:ServerSettingsPath"] ?? "";
+        var patchServerSettings = configuration.GetValue("Launcher:PatchServerSettings", true);
         var schedulerEnabled = configuration.GetValue("Scheduler:Enabled", false);
         var autoStopServer = configuration.GetValue("Scheduler:AutoStopServer", true);
         var autoStartServer = configuration.GetValue("Scheduler:AutoStartServer", true);
@@ -49,6 +51,8 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
         var deploymentTargetConfigured = !string.IsNullOrWhiteSpace(deploymentTargetPath);
         var deploymentDirectory = deploymentTargetConfigured ? Path.GetDirectoryName(deploymentTargetPath) : null;
         var deploymentDirectoryExists = !string.IsNullOrWhiteSpace(deploymentDirectory) && Directory.Exists(deploymentDirectory);
+        var serverSettingsConfigured = !string.IsNullOrWhiteSpace(serverSettingsPath);
+        var serverSettingsExists = serverSettingsConfigured && File.Exists(serverSettingsPath);
 
         if (!dcsExecutableConfigured)
         {
@@ -91,6 +95,15 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
             warnings.Add("Server mission deploy directory does not exist yet.");
         }
 
+        if (patchServerSettings && !serverSettingsConfigured)
+        {
+            warnings.Add("serverSettings.lua path is not configured; DCS missionList will not be patched.");
+        }
+        else if (patchServerSettings && !serverSettingsExists)
+        {
+            warnings.Add("serverSettings.lua does not exist yet; it will be created when deploying.");
+        }
+
         if (schedulerEnabled && autoStartServer)
         {
             warnings.Add("Scheduler AutoStart is enabled. The launcher may start DCS automatically when a turn expires.");
@@ -119,6 +132,9 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
             deploymentDirectoryExists,
             deploymentTargetPath,
             cleanupOldTurnMissions,
+            serverSettingsConfigured,
+            serverSettingsExists,
+            patchServerSettings,
             schedulerEnabled,
             autoStopServer,
             autoStartServer,
