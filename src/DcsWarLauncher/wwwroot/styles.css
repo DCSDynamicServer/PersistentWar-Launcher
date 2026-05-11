@@ -239,6 +239,59 @@ button.wide {
   gap: 10px;
 }
 
+.smoke-guide-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.smoke-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: smoke-step;
+}
+
+.smoke-steps li {
+  min-height: 82px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-soft);
+  padding: 12px 12px 12px 42px;
+  position: relative;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.smoke-steps li::before {
+  counter-increment: smoke-step;
+  content: counter(smoke-step);
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(71, 163, 255, .16);
+  color: var(--blue);
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.smoke-steps strong {
+  color: var(--text);
+}
+
+.smoke-note {
+  margin: 0;
+  color: var(--gold);
+  font-size: 13px;
+}
+
 .ok-text {
   color: var(--green);
 }
@@ -826,6 +879,7 @@ button.wide {
 
   .war-meta,
   .template-meta,
+  .smoke-steps,
   .supply,
   .campaign-actions,
   .battle-report {
