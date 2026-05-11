@@ -34,6 +34,16 @@ Invoke-RestMethod -Method Post `
 
 Alternativ im Server-Tab `Automation einmal testen` klicken.
 
+Vor dem ersten echten Server-Test zeigt der Server-Tab einen Config-Check:
+
+- DCS exe vorhanden
+- Default-Mission vorhanden
+- Remote Token gesetzt
+- Scheduler-Modus
+- AutoStart aktiv oder aus
+
+Wenn AutoStart noch aus ist, arbeitet die Automation im Safe Mode und startet DCS nicht automatisch.
+
 ## Wichtiger v0.08 Stand
 
 - Player-Slots bleiben aus der Template-MIZ erhalten.

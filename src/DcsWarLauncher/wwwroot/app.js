@@ -21,6 +21,13 @@ const els = {
   schedulerRun: document.querySelector("#schedulerRun"),
   schedulerMessage: document.querySelector("#schedulerMessage"),
   runAutomationOnceBtn: document.querySelector("#runAutomationOnceBtn"),
+  configReady: document.querySelector("#configReady"),
+  configMode: document.querySelector("#configMode"),
+  configDcsExe: document.querySelector("#configDcsExe"),
+  configDefaultMission: document.querySelector("#configDefaultMission"),
+  configToken: document.querySelector("#configToken"),
+  configAutoStart: document.querySelector("#configAutoStart"),
+  configWarnings: document.querySelector("#configWarnings"),
   campaignName: document.querySelector("#campaignName"),
   campaignCreated: document.querySelector("#campaignCreated"),
   theater: document.querySelector("#theater"),
@@ -115,6 +122,37 @@ async function loadScheduler() {
     ? new Date(scheduler.lastRunUtc).toLocaleString()
     : "-";
   els.schedulerMessage.textContent = scheduler.lastMessage;
+}
+
+async function loadConfigCheck() {
+  const response = await fetch("/api/server/config-check");
+  const config = await response.json().catch(() => null);
+  if (!response.ok || !config) {
+    els.configReady.textContent = "Fehler";
+    els.configReady.className = "bad-text";
+    els.configMode.textContent = "-";
+    els.configWarnings.innerHTML = "";
+    return;
+  }
+
+  els.configReady.textContent = config.isReady ? "Bereit" : "Pruefen";
+  els.configReady.className = config.isReady ? "ok-text" : "warn-text";
+  els.configMode.textContent = config.mode || "-";
+  els.configDcsExe.textContent = config.dcsExecutableExists ? "OK" : config.dcsExecutableConfigured ? "Fehlt" : "Offen";
+  els.configDcsExe.className = config.dcsExecutableExists ? "ok-text" : "bad-text";
+  els.configDefaultMission.textContent = config.defaultMissionExists ? "OK" : config.defaultMissionConfigured ? "Fehlt" : "Offen";
+  els.configDefaultMission.className = config.defaultMissionExists ? "ok-text" : "bad-text";
+  els.configToken.textContent = config.remoteTokenConfigured ? "Gesetzt" : "Offen";
+  els.configToken.className = config.remoteTokenConfigured ? "ok-text" : "bad-text";
+  els.configAutoStart.textContent = config.autoStartServer ? "Aktiv" : "Aus";
+  els.configAutoStart.className = config.autoStartServer ? "warn-text" : "ok-text";
+
+  els.configWarnings.innerHTML = "";
+  for (const warning of config.warnings || []) {
+    const item = document.createElement("p");
+    item.textContent = warning;
+    els.configWarnings.appendChild(item);
+  }
 }
 
 async function loadGeneratedMission() {
@@ -603,6 +641,7 @@ async function runAutomationOnce() {
   await loadState();
   await loadGeneratedMission();
   await loadScheduler();
+  await loadConfigCheck();
   await loadReadiness();
 }
 
@@ -893,6 +932,7 @@ for (const button of els.tabButtons) {
 els.refreshBtn.addEventListener("click", async () => {
   await loadStatus();
   await loadScheduler();
+  await loadConfigCheck();
   await loadGeneratedMission();
   await loadMissionResultStatus();
   await loadReadiness();
@@ -902,6 +942,7 @@ els.refreshBtn.addEventListener("click", async () => {
 
 loadStatus();
 loadScheduler();
+loadConfigCheck();
 loadGeneratedMission();
 loadMissionResultStatus();
 loadReadiness();
@@ -909,4 +950,5 @@ loadState();
 loadTemplateInspection();
 setInterval(loadStatus, 5000);
 setInterval(loadScheduler, 10000);
+setInterval(loadConfigCheck, 30000);
 setInterval(updateRemaining, 30000);

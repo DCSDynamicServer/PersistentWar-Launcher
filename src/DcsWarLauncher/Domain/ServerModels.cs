@@ -24,6 +24,23 @@ public sealed record DcsStatus(
     string DefaultMissionPath,
     DateTimeOffset CheckedUtc);
 
+public sealed record DcsConfigCheck(
+    bool IsReady,
+    bool DcsExecutableConfigured,
+    bool DcsExecutableExists,
+    bool DefaultMissionConfigured,
+    bool DefaultMissionExists,
+    bool StartArgumentsConfigured,
+    bool StartArgumentsContainMissionPlaceholder,
+    bool RemoteTokenConfigured,
+    bool SchedulerEnabled,
+    bool AutoStopServer,
+    bool AutoStartServer,
+    bool AdvanceWhenTurnExpired,
+    string Mode,
+    IReadOnlyCollection<string> Warnings,
+    DateTimeOffset CheckedUtc);
+
 public sealed record ActionResultDto(bool Success, string Message)
 {
     public static ActionResultDto Ok(string message) => new(true, message);

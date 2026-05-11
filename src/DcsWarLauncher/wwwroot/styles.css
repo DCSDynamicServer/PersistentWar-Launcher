@@ -219,7 +219,8 @@ button.wide {
 
 .war-meta div,
 .template-meta div,
-.scheduler-grid div {
+.scheduler-grid div,
+.config-check div {
   background: var(--panel-soft);
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -228,7 +229,8 @@ button.wide {
 
 .war-meta span,
 .template-meta span,
-.scheduler-grid span {
+.scheduler-grid span,
+.config-check span {
   display: block;
   color: var(--muted);
   font-size: 12px;
@@ -236,7 +238,8 @@ button.wide {
 
 .war-meta strong,
 .template-meta strong,
-.scheduler-grid strong {
+.scheduler-grid strong,
+.config-check strong {
   display: block;
   margin-top: 6px;
 }
@@ -308,10 +311,36 @@ button.wide {
   color: var(--red);
 }
 
+.warn-text {
+  color: var(--gold);
+}
+
 .scheduler-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
+}
+
+.config-check {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.config-warnings {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 14px;
+}
+
+.config-warnings p {
+  margin: 0;
+  border: 1px solid rgba(243, 188, 79, .45);
+  border-radius: 6px;
+  background: rgba(243, 188, 79, .08);
+  color: var(--gold);
+  padding: 10px 12px;
+  font-size: 13px;
 }
 
 .supply {
@@ -888,6 +917,7 @@ button.wide {
   .war-meta,
   .template-meta,
   .smoke-steps,
+  .config-check,
   .supply,
   .campaign-actions,
   .battle-report {

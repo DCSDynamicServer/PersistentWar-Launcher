@@ -20,6 +20,91 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
             DateTimeOffset.UtcNow);
     }
 
+    public DcsConfigCheck GetConfigCheck()
+    {
+        var exePath = configuration["Launcher:DcsExecutablePath"] ?? "";
+        var missionPath = configuration["Launcher:DefaultMissionPath"] ?? "";
+        var startArguments = configuration["Launcher:StartArguments"] ?? "";
+        var remoteToken = configuration["Launcher:RemoteToken"] ?? "";
+        var schedulerEnabled = configuration.GetValue("Scheduler:Enabled", false);
+        var autoStopServer = configuration.GetValue("Scheduler:AutoStopServer", true);
+        var autoStartServer = configuration.GetValue("Scheduler:AutoStartServer", true);
+        var advanceWhenTurnExpired = configuration.GetValue("Scheduler:AdvanceWhenTurnExpired", true);
+
+        var warnings = new List<string>();
+        var dcsExecutableConfigured = !string.IsNullOrWhiteSpace(exePath);
+        var dcsExecutableExists = dcsExecutableConfigured && File.Exists(exePath);
+        var defaultMissionConfigured = !string.IsNullOrWhiteSpace(missionPath);
+        var defaultMissionExists = defaultMissionConfigured && File.Exists(missionPath);
+        var startArgumentsConfigured = !string.IsNullOrWhiteSpace(startArguments);
+        var startArgumentsContainMissionPlaceholder = startArguments.Contains("{mission}", StringComparison.Ordinal);
+        var remoteTokenConfigured = !string.IsNullOrWhiteSpace(remoteToken) &&
+            !remoteToken.Equals("change-me-before-remote-use", StringComparison.OrdinalIgnoreCase);
+
+        if (!dcsExecutableConfigured)
+        {
+            warnings.Add("DCS executable path is not configured.");
+        }
+        else if (!dcsExecutableExists)
+        {
+            warnings.Add("DCS executable path does not exist.");
+        }
+
+        if (!defaultMissionConfigured)
+        {
+            warnings.Add("Default mission path is not configured.");
+        }
+        else if (!defaultMissionExists)
+        {
+            warnings.Add("Default mission path does not exist.");
+        }
+
+        if (!startArgumentsConfigured)
+        {
+            warnings.Add("DCS start arguments are not configured.");
+        }
+        else if (!startArgumentsContainMissionPlaceholder)
+        {
+            warnings.Add("DCS start arguments should contain {mission}.");
+        }
+
+        if (!remoteTokenConfigured)
+        {
+            warnings.Add("Remote token is not configured for real remote use.");
+        }
+
+        if (schedulerEnabled && autoStartServer)
+        {
+            warnings.Add("Scheduler AutoStart is enabled. The launcher may start DCS automatically when a turn expires.");
+        }
+
+        var isReady = dcsExecutableExists &&
+            defaultMissionExists &&
+            startArgumentsConfigured &&
+            startArgumentsContainMissionPlaceholder &&
+            remoteTokenConfigured;
+        var mode = schedulerEnabled
+            ? autoStartServer ? "Live automation" : "Safe automation"
+            : "Manual";
+
+        return new DcsConfigCheck(
+            isReady,
+            dcsExecutableConfigured,
+            dcsExecutableExists,
+            defaultMissionConfigured,
+            defaultMissionExists,
+            startArgumentsConfigured,
+            startArgumentsContainMissionPlaceholder,
+            remoteTokenConfigured,
+            schedulerEnabled,
+            autoStopServer,
+            autoStartServer,
+            advanceWhenTurnExpired,
+            mode,
+            warnings,
+            DateTimeOffset.UtcNow);
+    }
+
     public Task<ActionResultDto> StartAsync(StartMissionRequest request)
     {
         if (_process is { HasExited: false })

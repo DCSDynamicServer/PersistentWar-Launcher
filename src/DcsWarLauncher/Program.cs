@@ -36,6 +36,8 @@ app.MapGet("/api/health", () => Results.Ok(new
 
 app.MapGet("/api/server/status", (DcsProcessService dcs) => Results.Ok(dcs.GetStatus()));
 
+app.MapGet("/api/server/config-check", (DcsProcessService dcs) => Results.Ok(dcs.GetConfigCheck()));
+
 app.MapGet("/api/scheduler/status", (TurnSchedulerState scheduler) => Results.Ok(scheduler.GetSnapshot()));
 
 app.MapPost("/api/scheduler/run-once", async (

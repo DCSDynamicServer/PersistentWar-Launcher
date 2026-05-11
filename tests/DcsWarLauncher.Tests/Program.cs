@@ -49,6 +49,7 @@ var tests = new (string Name, Action Test)[]
     ("Readiness checker requires current generated mission", ReadinessCheckerRequiresCurrentGeneratedMission),
     ("Turn automation prepares next mission for expired turn", TurnAutomationPreparesNextMissionForExpiredTurn),
     ("Turn automation blocks invalid mission result", TurnAutomationBlocksInvalidMissionResult),
+    ("DCS config check reports safe mode", DcsConfigCheckReportsSafeMode),
     ("Mission template inspector reports WL anchors", MissionTemplateInspectorReportsWlAnchors),
     ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
 };
@@ -1006,6 +1007,45 @@ static void TurnAutomationBlocksInvalidMissionResult()
         Assert.True(!result.TurnAdvanced, "Expected turn to remain unchanged.");
         Assert.Equal(1, savedState.Turn);
         Assert.True(result.Message.Contains("could not be parsed", StringComparison.Ordinal), "Expected parse failure in message.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void DcsConfigCheckReportsSafeMode()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var exePath = Path.Combine(root, "DCS.exe");
+        var missionPath = Path.Combine(root, "test.miz");
+        File.WriteAllText(exePath, "");
+        File.WriteAllText(missionPath, "");
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Launcher:DcsExecutablePath"] = exePath,
+                ["Launcher:DefaultMissionPath"] = missionPath,
+                ["Launcher:StartArguments"] = "--server --norender -w DCS.openbeta \"{mission}\"",
+                ["Launcher:RemoteToken"] = "real-token",
+                ["Scheduler:Enabled"] = "true",
+                ["Scheduler:AutoStartServer"] = "false",
+                ["Scheduler:AutoStopServer"] = "true",
+                ["Scheduler:AdvanceWhenTurnExpired"] = "true"
+            })
+            .Build();
+
+        var check = new DcsProcessService(configuration, NullLogger<DcsProcessService>.Instance).GetConfigCheck();
+
+        Assert.True(check.IsReady, "Expected config to be ready.");
+        Assert.True(check.DcsExecutableExists, "Expected DCS executable to exist.");
+        Assert.True(check.DefaultMissionExists, "Expected default mission to exist.");
+        Assert.True(check.RemoteTokenConfigured, "Expected remote token to be configured.");
+        Assert.Equal("Safe automation", check.Mode);
+        Assert.True(!check.AutoStartServer, "Expected AutoStart to remain off.");
     }
     finally
     {
