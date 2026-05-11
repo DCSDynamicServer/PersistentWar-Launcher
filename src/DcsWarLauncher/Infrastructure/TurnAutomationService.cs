@@ -10,6 +10,7 @@ public sealed class TurnAutomationService(
     TurnEngine turnEngine,
     MissionPlanExporter missionPlanExporter,
     MissionResultImporter missionResultImporter,
+    MissionDeploymentService missionDeployment,
     DcsProcessService dcs,
     ILogger<TurnAutomationService> logger)
 {
@@ -66,11 +67,23 @@ public sealed class TurnAutomationService(
                 MissionResultFileName: resultFileName);
         }
 
+        var deployment = await missionDeployment.DeployAsync(preparedMission.MizFilePath, preparedMission.MizFileName);
+        if (!deployment.Success || string.IsNullOrWhiteSpace(deployment.MissionPath))
+        {
+            return new TurnAutomationResult(
+                false,
+                false,
+                currentState.Turn,
+                $"Turn {currentState.Turn} not advanced; mission could not be deployed: {deployment.Message}",
+                PreparedMissionPath: preparedMission.MizFilePath,
+                MissionResultFileName: resultFileName);
+        }
+
         await store.SaveAsync(nextState);
 
         if (options.AutoStartServer)
         {
-            var startResult = await dcs.StartAsync(new StartMissionRequest(preparedMission.MizFilePath));
+            var startResult = await dcs.StartAsync(new StartMissionRequest(deployment.MissionPath));
             if (!startResult.Success)
             {
                 return new TurnAutomationResult(
@@ -78,6 +91,7 @@ public sealed class TurnAutomationService(
                     true,
                     nextState.Turn,
                     $"Turn {nextState.Turn} created and MIZ prepared; server not started: {startResult.Message}",
+                    deployment.MissionPath,
                     preparedMission.MizFilePath,
                     resultFileName);
             }
@@ -88,7 +102,8 @@ public sealed class TurnAutomationService(
             true,
             true,
             nextState.Turn,
-            $"Turn {nextState.Turn} created; prepared {preparedMission.MizFileName} from {source}.",
+            $"Turn {nextState.Turn} created; prepared {preparedMission.MizFileName} from {source}. {deployment.Message}",
+            deployment.MissionPath,
             preparedMission.MizFilePath,
             resultFileName);
     }

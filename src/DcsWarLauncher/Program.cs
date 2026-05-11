@@ -19,6 +19,7 @@ builder.Services.AddSingleton<MissionPlanExporter>();
 builder.Services.AddSingleton<MissionTemplateInspector>();
 builder.Services.AddSingleton<MissionResultImporter>();
 builder.Services.AddSingleton<ReadinessChecker>();
+builder.Services.AddSingleton<MissionDeploymentService>();
 builder.Services.AddSingleton<TurnAutomationService>();
 builder.Services.AddSingleton<TurnSchedulerState>();
 builder.Services.AddHostedService<TurnSchedulerService>();

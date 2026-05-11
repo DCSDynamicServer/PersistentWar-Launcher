@@ -55,6 +55,7 @@
 ## Phase 5: 24/7 Deployment
 
 - Automation-Run kapseln: abgelaufenen Turn auswerten, naechste Turn-MIZ vorbereiten und optional genau diese MIZ starten.
+- Turn-MIZ vor Serverstart in festen DCS-Missionspfad deployen und alte War-Launcher-Turn-MIZ-Dateien bereinigen.
 - Windows-Service Installation.
 - Log-Rotation und Healthchecks.
 - Backup des Campaign-State.

@@ -27,6 +27,9 @@ const els = {
   configDefaultMission: document.querySelector("#configDefaultMission"),
   configToken: document.querySelector("#configToken"),
   configAutoStart: document.querySelector("#configAutoStart"),
+  configDeployTarget: document.querySelector("#configDeployTarget"),
+  configDeployDirectory: document.querySelector("#configDeployDirectory"),
+  configCleanup: document.querySelector("#configCleanup"),
   configWarnings: document.querySelector("#configWarnings"),
   campaignName: document.querySelector("#campaignName"),
   campaignCreated: document.querySelector("#campaignCreated"),
@@ -146,6 +149,12 @@ async function loadConfigCheck() {
   els.configToken.className = config.remoteTokenConfigured ? "ok-text" : "bad-text";
   els.configAutoStart.textContent = config.autoStartServer ? "Aktiv" : "Aus";
   els.configAutoStart.className = config.autoStartServer ? "warn-text" : "ok-text";
+  els.configDeployTarget.textContent = config.deploymentTargetConfigured ? "Gesetzt" : "Offen";
+  els.configDeployTarget.className = config.deploymentTargetConfigured ? "ok-text" : "bad-text";
+  els.configDeployDirectory.textContent = config.deploymentDirectoryExists ? "OK" : "Fehlt";
+  els.configDeployDirectory.className = config.deploymentDirectoryExists ? "ok-text" : "warn-text";
+  els.configCleanup.textContent = config.cleanupOldTurnMissions ? "Aktiv" : "Aus";
+  els.configCleanup.className = config.cleanupOldTurnMissions ? "ok-text" : "warn-text";
 
   els.configWarnings.innerHTML = "";
   for (const warning of config.warnings || []) {

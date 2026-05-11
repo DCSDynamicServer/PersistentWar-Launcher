@@ -4,7 +4,10 @@ public sealed record LauncherOptions(
     string DcsExecutablePath,
     string DefaultMissionPath,
     string StartArguments,
-    string RemoteToken);
+    string RemoteToken,
+    string? ServerMissionDirectory = null,
+    string? DeployedMissionFileName = null,
+    bool CleanupOldTurnMissions = true);
 
 public sealed class SchedulerOptions
 {
@@ -33,6 +36,10 @@ public sealed record DcsConfigCheck(
     bool StartArgumentsConfigured,
     bool StartArgumentsContainMissionPlaceholder,
     bool RemoteTokenConfigured,
+    bool DeploymentTargetConfigured,
+    bool DeploymentDirectoryExists,
+    string DeploymentTargetPath,
+    bool CleanupOldTurnMissions,
     bool SchedulerEnabled,
     bool AutoStopServer,
     bool AutoStartServer,
@@ -64,4 +71,11 @@ public sealed record TurnAutomationResult(
     int Turn,
     string Message,
     string? MissionPath = null,
+    string? PreparedMissionPath = null,
     string? MissionResultFileName = null);
+
+public sealed record MissionDeploymentResult(
+    bool Success,
+    string Message,
+    string? MissionPath,
+    int DeletedOldMissions);

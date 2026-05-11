@@ -26,6 +26,9 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
         var missionPath = configuration["Launcher:DefaultMissionPath"] ?? "";
         var startArguments = configuration["Launcher:StartArguments"] ?? "";
         var remoteToken = configuration["Launcher:RemoteToken"] ?? "";
+        var serverMissionDirectory = configuration["Launcher:ServerMissionDirectory"] ?? "";
+        var deployedMissionFileName = configuration["Launcher:DeployedMissionFileName"] ?? "persistent-war-current.miz";
+        var cleanupOldTurnMissions = configuration.GetValue("Launcher:CleanupOldTurnMissions", true);
         var schedulerEnabled = configuration.GetValue("Scheduler:Enabled", false);
         var autoStopServer = configuration.GetValue("Scheduler:AutoStopServer", true);
         var autoStartServer = configuration.GetValue("Scheduler:AutoStartServer", true);
@@ -40,6 +43,12 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
         var startArgumentsContainMissionPlaceholder = startArguments.Contains("{mission}", StringComparison.Ordinal);
         var remoteTokenConfigured = !string.IsNullOrWhiteSpace(remoteToken) &&
             !remoteToken.Equals("change-me-before-remote-use", StringComparison.OrdinalIgnoreCase);
+        var deploymentTargetPath = !string.IsNullOrWhiteSpace(serverMissionDirectory)
+            ? Path.Combine(serverMissionDirectory, deployedMissionFileName)
+            : missionPath;
+        var deploymentTargetConfigured = !string.IsNullOrWhiteSpace(deploymentTargetPath);
+        var deploymentDirectory = deploymentTargetConfigured ? Path.GetDirectoryName(deploymentTargetPath) : null;
+        var deploymentDirectoryExists = !string.IsNullOrWhiteSpace(deploymentDirectory) && Directory.Exists(deploymentDirectory);
 
         if (!dcsExecutableConfigured)
         {
@@ -73,6 +82,15 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
             warnings.Add("Remote token is not configured for real remote use.");
         }
 
+        if (!deploymentTargetConfigured)
+        {
+            warnings.Add("Server mission deploy target is not configured.");
+        }
+        else if (!deploymentDirectoryExists)
+        {
+            warnings.Add("Server mission deploy directory does not exist yet.");
+        }
+
         if (schedulerEnabled && autoStartServer)
         {
             warnings.Add("Scheduler AutoStart is enabled. The launcher may start DCS automatically when a turn expires.");
@@ -82,7 +100,8 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
             defaultMissionExists &&
             startArgumentsConfigured &&
             startArgumentsContainMissionPlaceholder &&
-            remoteTokenConfigured;
+            remoteTokenConfigured &&
+            deploymentTargetConfigured;
         var mode = schedulerEnabled
             ? autoStartServer ? "Live automation" : "Safe automation"
             : "Manual";
@@ -96,6 +115,10 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
             startArgumentsConfigured,
             startArgumentsContainMissionPlaceholder,
             remoteTokenConfigured,
+            deploymentTargetConfigured,
+            deploymentDirectoryExists,
+            deploymentTargetPath,
+            cleanupOldTurnMissions,
             schedulerEnabled,
             autoStopServer,
             autoStartServer,

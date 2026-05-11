@@ -22,7 +22,9 @@ Der erste Phase-5-Baustein kapselt einen kompletten Automation-Run:
 4. Optional DCS stoppen.
 5. Naechsten Campaign-State berechnen.
 6. Naechste Turn-MIZ vorbereiten.
-7. Optional DCS mit genau dieser Turn-MIZ starten.
+7. Turn-MIZ in den Server-Missionsordner deployen.
+8. Alte War-Launcher-Turn-MIZ-Dateien im Server-Missionsordner entfernen.
+9. Optional DCS mit genau dieser deployed Turn-MIZ starten.
 
 Manueller Testlauf:
 
@@ -43,6 +45,13 @@ Vor dem ersten echten Server-Test zeigt der Server-Tab einen Config-Check:
 - AutoStart aktiv oder aus
 
 Wenn AutoStart noch aus ist, arbeitet die Automation im Safe Mode und startet DCS nicht automatisch.
+
+Empfohlene Server-Mission-Strategie:
+
+- Entweder `DefaultMissionPath` zeigt direkt auf die feste Server-MIZ, z.B. `...\Missions\persistent-war-current.miz`.
+- Oder `ServerMissionDirectory` zeigt auf den DCS-Missionsordner und `DeployedMissionFileName` bleibt fest, z.B. `persistent-war-current.miz`.
+- `CleanupOldTurnMissions` bleibt aktiv.
+- DCS startet immer die feste deployed MIZ, nicht zufaellig eine alte Turn-MIZ.
 
 ## Wichtiger v0.08 Stand
 

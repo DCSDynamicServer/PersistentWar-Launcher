@@ -49,6 +49,7 @@ var tests = new (string Name, Action Test)[]
     ("Readiness checker requires current generated mission", ReadinessCheckerRequiresCurrentGeneratedMission),
     ("Turn automation prepares next mission for expired turn", TurnAutomationPreparesNextMissionForExpiredTurn),
     ("Turn automation blocks invalid mission result", TurnAutomationBlocksInvalidMissionResult),
+    ("Mission deployment replaces old turn missions", MissionDeploymentReplacesOldTurnMissions),
     ("DCS config check reports safe mode", DcsConfigCheckReportsSafeMode),
     ("Mission template inspector reports WL anchors", MissionTemplateInspectorReportsWlAnchors),
     ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
@@ -930,7 +931,9 @@ static void TurnAutomationPreparesNextMissionForExpiredTurn()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Launcher:DcsExecutablePath"] = Path.Combine(root, "missing-dcs.exe"),
-                ["Launcher:DefaultMissionPath"] = Path.Combine(root, "missing-default.miz")
+                ["Launcher:DefaultMissionPath"] = Path.Combine(root, "missing-default.miz"),
+                ["Launcher:ServerMissionDirectory"] = Path.Combine(root, "ServerMissions"),
+                ["Launcher:DeployedMissionFileName"] = "persistent-war-current.miz"
             })
             .Build();
         var dcs = new DcsProcessService(configuration, NullLogger<DcsProcessService>.Instance);
@@ -939,6 +942,7 @@ static void TurnAutomationPreparesNextMissionForExpiredTurn()
             new TurnEngine(),
             new MissionPlanExporter(environment),
             new MissionResultImporter(environment),
+            new MissionDeploymentService(configuration, NullLogger<MissionDeploymentService>.Instance),
             dcs,
             NullLogger<TurnAutomationService>.Instance);
 
@@ -955,7 +959,9 @@ static void TurnAutomationPreparesNextMissionForExpiredTurn()
         Assert.True(result.TurnAdvanced, "Expected expired turn to advance.");
         Assert.Equal(2, result.Turn);
         Assert.Equal(2, savedState.Turn);
-        Assert.True(File.Exists(result.MissionPath), "Expected automation to prepare the next Turn-MIZ.");
+        Assert.True(File.Exists(result.PreparedMissionPath), "Expected automation to prepare the next Turn-MIZ.");
+        Assert.True(File.Exists(result.MissionPath), "Expected automation to deploy the next Turn-MIZ.");
+        Assert.True(result.MissionPath!.EndsWith("persistent-war-current.miz", StringComparison.OrdinalIgnoreCase), "Expected automation to use fixed deployed mission path.");
         Assert.True(result.Message.Contains("automation-test-turn-0002.miz", StringComparison.Ordinal), "Expected message to reference prepared Turn-MIZ.");
     }
     finally
@@ -992,6 +998,7 @@ static void TurnAutomationBlocksInvalidMissionResult()
             new TurnEngine(),
             new MissionPlanExporter(environment),
             new MissionResultImporter(environment),
+            new MissionDeploymentService(configuration, NullLogger<MissionDeploymentService>.Instance),
             new DcsProcessService(configuration, NullLogger<DcsProcessService>.Instance),
             NullLogger<TurnAutomationService>.Instance);
 
@@ -1014,6 +1021,46 @@ static void TurnAutomationBlocksInvalidMissionResult()
     }
 }
 
+static void MissionDeploymentReplacesOldTurnMissions()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var sourcePath = Path.Combine(root, "generated-turn.miz");
+        var serverMissionDirectory = Path.Combine(root, "ServerMissions");
+        Directory.CreateDirectory(serverMissionDirectory);
+        File.WriteAllText(sourcePath, "new miz");
+        File.WriteAllText(Path.Combine(serverMissionDirectory, "campaign-old-turn-0001.miz"), "old");
+        File.WriteAllText(Path.Combine(serverMissionDirectory, "war-launcher-turn-0001.miz"), "old");
+        File.WriteAllText(Path.Combine(serverMissionDirectory, "keep-user-mission.miz"), "keep");
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Launcher:ServerMissionDirectory"] = serverMissionDirectory,
+                ["Launcher:DeployedMissionFileName"] = "persistent-war-current.miz",
+                ["Launcher:CleanupOldTurnMissions"] = "true"
+            })
+            .Build();
+
+        var deployment = new MissionDeploymentService(configuration, NullLogger<MissionDeploymentService>.Instance)
+            .DeployAsync(sourcePath, "campaign-new-turn-0002.miz")
+            .GetAwaiter()
+            .GetResult();
+
+        Assert.True(deployment.Success, "Expected deployment to succeed.");
+        Assert.Equal(2, deployment.DeletedOldMissions);
+        Assert.True(File.Exists(Path.Combine(serverMissionDirectory, "persistent-war-current.miz")), "Expected fixed deployed mission file.");
+        Assert.True(!File.Exists(Path.Combine(serverMissionDirectory, "campaign-old-turn-0001.miz")), "Expected old campaign turn file to be removed.");
+        Assert.True(!File.Exists(Path.Combine(serverMissionDirectory, "war-launcher-turn-0001.miz")), "Expected old war launcher turn file to be removed.");
+        Assert.True(File.Exists(Path.Combine(serverMissionDirectory, "keep-user-mission.miz")), "Expected unrelated user mission to remain.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
 static void DcsConfigCheckReportsSafeMode()
 {
     var root = CreateTempRoot();
@@ -1021,6 +1068,8 @@ static void DcsConfigCheckReportsSafeMode()
     {
         var exePath = Path.Combine(root, "DCS.exe");
         var missionPath = Path.Combine(root, "test.miz");
+        var serverMissionDirectory = Path.Combine(root, "ServerMissions");
+        Directory.CreateDirectory(serverMissionDirectory);
         File.WriteAllText(exePath, "");
         File.WriteAllText(missionPath, "");
 
@@ -1029,6 +1078,9 @@ static void DcsConfigCheckReportsSafeMode()
             {
                 ["Launcher:DcsExecutablePath"] = exePath,
                 ["Launcher:DefaultMissionPath"] = missionPath,
+                ["Launcher:ServerMissionDirectory"] = serverMissionDirectory,
+                ["Launcher:DeployedMissionFileName"] = "persistent-war-current.miz",
+                ["Launcher:CleanupOldTurnMissions"] = "true",
                 ["Launcher:StartArguments"] = "--server --norender -w DCS.openbeta \"{mission}\"",
                 ["Launcher:RemoteToken"] = "real-token",
                 ["Scheduler:Enabled"] = "true",
@@ -1043,6 +1095,10 @@ static void DcsConfigCheckReportsSafeMode()
         Assert.True(check.IsReady, "Expected config to be ready.");
         Assert.True(check.DcsExecutableExists, "Expected DCS executable to exist.");
         Assert.True(check.DefaultMissionExists, "Expected default mission to exist.");
+        Assert.True(check.DeploymentTargetConfigured, "Expected deployment target to be configured.");
+        Assert.True(check.DeploymentDirectoryExists, "Expected deployment directory to exist.");
+        Assert.True(check.DeploymentTargetPath.EndsWith("persistent-war-current.miz", StringComparison.OrdinalIgnoreCase), "Expected fixed deploy target.");
+        Assert.True(check.CleanupOldTurnMissions, "Expected cleanup to be active.");
         Assert.True(check.RemoteTokenConfigured, "Expected remote token to be configured.");
         Assert.Equal("Safe automation", check.Mode);
         Assert.True(!check.AutoStartServer, "Expected AutoStart to remain off.");
