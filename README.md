@@ -32,6 +32,8 @@ Invoke-RestMethod -Method Post `
   -Headers @{ Authorization = "Bearer <token>" }
 ```
 
+Alternativ im Server-Tab `Automation einmal testen` klicken.
+
 ## Wichtiger v0.08 Stand
 
 - Player-Slots bleiben aus der Template-MIZ erhalten.

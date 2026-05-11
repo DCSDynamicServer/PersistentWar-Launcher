@@ -197,6 +197,14 @@ button.wide {
   margin-top: 16px;
 }
 
+.automation-actions {
+  margin-top: 14px;
+}
+
+.automation-actions button {
+  width: 100%;
+}
+
 .message {
   min-height: 22px;
   margin-bottom: 0;

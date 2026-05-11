@@ -20,6 +20,7 @@ const els = {
   schedulerChecked: document.querySelector("#schedulerChecked"),
   schedulerRun: document.querySelector("#schedulerRun"),
   schedulerMessage: document.querySelector("#schedulerMessage"),
+  runAutomationOnceBtn: document.querySelector("#runAutomationOnceBtn"),
   campaignName: document.querySelector("#campaignName"),
   campaignCreated: document.querySelector("#campaignCreated"),
   theater: document.querySelector("#theater"),
@@ -581,6 +582,30 @@ async function stopServer() {
   await loadStatus();
 }
 
+async function runAutomationOnce() {
+  const confirmed = window.confirm("Automation einmal ausfuehren? Wenn der Turn abgelaufen ist, kann ein neuer Campaign-State und eine neue Turn-MIZ erzeugt werden.");
+  if (!confirmed) {
+    return;
+  }
+
+  els.schedulerMessage.textContent = "Automation laeuft einmal...";
+  const response = await fetch("/api/scheduler/run-once", {
+    method: "POST",
+    headers: authHeaders()
+  });
+
+  const result = await response.json().catch(() => ({ message: "Unauthorized oder ungueltige Antwort." }));
+  els.schedulerMessage.textContent = result.message || "Automation abgeschlossen.";
+  if (!response.ok) {
+    return;
+  }
+
+  await loadState();
+  await loadGeneratedMission();
+  await loadScheduler();
+  await loadReadiness();
+}
+
 async function saveState() {
   currentState.blueSupply = Number(els.blueSupply.value);
   currentState.redSupply = Number(els.redSupply.value);
@@ -849,6 +874,7 @@ async function prepareMission() {
 
 els.startBtn.addEventListener("click", startServer);
 els.stopBtn.addEventListener("click", stopServer);
+els.runAutomationOnceBtn.addEventListener("click", runAutomationOnce);
 els.useGeneratedMissionBtn.addEventListener("click", useGeneratedMission);
 els.importMissionResultBtn.addEventListener("click", importMissionResult);
 els.advanceFromResultBtn.addEventListener("click", advanceTurnFromResult);
