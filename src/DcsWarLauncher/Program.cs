@@ -2,6 +2,7 @@ using DcsWarLauncher.Campaign;
 using DcsWarLauncher.Domain;
 using DcsWarLauncher.Infrastructure;
 using DcsWarLauncher.Mission;
+using Microsoft.Extensions.Options;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,7 @@ builder.Services.AddSingleton<MissionPlanExporter>();
 builder.Services.AddSingleton<MissionTemplateInspector>();
 builder.Services.AddSingleton<MissionResultImporter>();
 builder.Services.AddSingleton<ReadinessChecker>();
+builder.Services.AddSingleton<TurnAutomationService>();
 builder.Services.AddSingleton<TurnSchedulerState>();
 builder.Services.AddHostedService<TurnSchedulerService>();
 
@@ -35,6 +37,20 @@ app.MapGet("/api/health", () => Results.Ok(new
 app.MapGet("/api/server/status", (DcsProcessService dcs) => Results.Ok(dcs.GetStatus()));
 
 app.MapGet("/api/scheduler/status", (TurnSchedulerState scheduler) => Results.Ok(scheduler.GetSnapshot()));
+
+app.MapPost("/api/scheduler/run-once", async (
+    HttpContext context,
+    IOptions<SchedulerOptions> schedulerOptions,
+    TurnAutomationService automation) =>
+{
+    if (!IsAuthorized(context, app.Configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await automation.RunExpiredTurnAsync(schedulerOptions.Value);
+    return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+});
 
 app.MapGet("/api/readiness/v008", async (ReadinessChecker readiness) =>
 {

@@ -3,7 +3,9 @@ using DcsWarLauncher.Domain;
 using DcsWarLauncher.Infrastructure;
 using DcsWarLauncher.Mission;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging.Abstractions;
 using System.IO.Compression;
 using System.Text.Json;
 
@@ -45,6 +47,8 @@ var tests = new (string Name, Action Test)[]
     ("Readiness checker reports v0.08 smoke status", ReadinessCheckerReportsV008SmokeStatus),
     ("Readiness checker can prepare smoke state", ReadinessCheckerCanPrepareSmokeState),
     ("Readiness checker requires current generated mission", ReadinessCheckerRequiresCurrentGeneratedMission),
+    ("Turn automation prepares next mission for expired turn", TurnAutomationPreparesNextMissionForExpiredTurn),
+    ("Turn automation blocks invalid mission result", TurnAutomationBlocksInvalidMissionResult),
     ("Mission template inspector reports WL anchors", MissionTemplateInspectorReportsWlAnchors),
     ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
 };
@@ -894,6 +898,114 @@ static void MissionTemplateInspectorReportsMissingTemplate()
         Assert.True(!result.IsReadable, "Expected missing template to be unreadable.");
         Assert.Equal(0, result.ClientSlotCount);
         Assert.True(result.Warnings.Any(warning => warning.Contains("No .miz template", StringComparison.Ordinal)), "Expected missing template warning.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void TurnAutomationPreparesNextMissionForExpiredTurn()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var templatePath = Path.Combine(root, "Data", "Templates");
+        Directory.CreateDirectory(templatePath);
+        CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
+
+        var environment = new TestEnvironment(root);
+        var store = new StateStore(environment);
+        var expiredState = WarState.CreateDefault() with
+        {
+            CampaignId = "automation-test",
+            Turn = 1,
+            CurrentTurnStartedUtc = DateTimeOffset.UtcNow.AddHours(-7),
+            CurrentTurnEndsUtc = DateTimeOffset.UtcNow.AddHours(-1)
+        };
+        store.SaveAsync(expiredState).GetAwaiter().GetResult();
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Launcher:DcsExecutablePath"] = Path.Combine(root, "missing-dcs.exe"),
+                ["Launcher:DefaultMissionPath"] = Path.Combine(root, "missing-default.miz")
+            })
+            .Build();
+        var dcs = new DcsProcessService(configuration, NullLogger<DcsProcessService>.Instance);
+        var automation = new TurnAutomationService(
+            store,
+            new TurnEngine(),
+            new MissionPlanExporter(environment),
+            new MissionResultImporter(environment),
+            dcs,
+            NullLogger<TurnAutomationService>.Instance);
+
+        var result = automation.RunExpiredTurnAsync(new SchedulerOptions
+        {
+            AutoStartServer = false,
+            AutoStopServer = false,
+            AdvanceWhenTurnExpired = true
+        }).GetAwaiter().GetResult();
+
+        var savedState = store.LoadAsync().GetAwaiter().GetResult();
+
+        Assert.True(result.Success, "Expected automation to succeed without starting DCS.");
+        Assert.True(result.TurnAdvanced, "Expected expired turn to advance.");
+        Assert.Equal(2, result.Turn);
+        Assert.Equal(2, savedState.Turn);
+        Assert.True(File.Exists(result.MissionPath), "Expected automation to prepare the next Turn-MIZ.");
+        Assert.True(result.Message.Contains("automation-test-turn-0002.miz", StringComparison.Ordinal), "Expected message to reference prepared Turn-MIZ.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void TurnAutomationBlocksInvalidMissionResult()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var templatePath = Path.Combine(root, "Data", "Templates");
+        var resultPath = Path.Combine(root, "Data", "Results");
+        Directory.CreateDirectory(templatePath);
+        Directory.CreateDirectory(resultPath);
+        CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
+        File.WriteAllText(Path.Combine(resultPath, "bad-result.json"), "{ broken json");
+
+        var environment = new TestEnvironment(root);
+        var store = new StateStore(environment);
+        store.SaveAsync(WarState.CreateDefault() with
+        {
+            CampaignId = "automation-test",
+            Turn = 1,
+            CurrentTurnStartedUtc = DateTimeOffset.UtcNow.AddHours(-7),
+            CurrentTurnEndsUtc = DateTimeOffset.UtcNow.AddHours(-1)
+        }).GetAwaiter().GetResult();
+
+        var configuration = new ConfigurationBuilder().Build();
+        var automation = new TurnAutomationService(
+            store,
+            new TurnEngine(),
+            new MissionPlanExporter(environment),
+            new MissionResultImporter(environment),
+            new DcsProcessService(configuration, NullLogger<DcsProcessService>.Instance),
+            NullLogger<TurnAutomationService>.Instance);
+
+        var result = automation.RunExpiredTurnAsync(new SchedulerOptions
+        {
+            AutoStartServer = false,
+            AutoStopServer = false,
+            AdvanceWhenTurnExpired = true
+        }).GetAwaiter().GetResult();
+        var savedState = store.LoadAsync().GetAwaiter().GetResult();
+
+        Assert.True(!result.Success, "Expected invalid mission result to block automation.");
+        Assert.True(!result.TurnAdvanced, "Expected turn to remain unchanged.");
+        Assert.Equal(1, savedState.Turn);
+        Assert.True(result.Message.Contains("could not be parsed", StringComparison.Ordinal), "Expected parse failure in message.");
     }
     finally
     {

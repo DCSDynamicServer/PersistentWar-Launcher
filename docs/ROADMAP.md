@@ -54,6 +54,7 @@
 
 ## Phase 5: 24/7 Deployment
 
+- Automation-Run kapseln: abgelaufenen Turn auswerten, naechste Turn-MIZ vorbereiten und optional genau diese MIZ starten.
 - Windows-Service Installation.
 - Log-Rotation und Healthchecks.
 - Backup des Campaign-State.

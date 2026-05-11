@@ -40,3 +40,11 @@ public sealed record SchedulerStatus(
     DateTimeOffset? LastCheckedUtc,
     DateTimeOffset? LastRunUtc,
     string LastMessage);
+
+public sealed record TurnAutomationResult(
+    bool Success,
+    bool TurnAdvanced,
+    int Turn,
+    string Message,
+    string? MissionPath = null,
+    string? MissionResultFileName = null);

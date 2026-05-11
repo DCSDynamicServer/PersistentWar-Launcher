@@ -12,6 +12,26 @@ Webbasierter Persistent-War-Launcher fuer DCS. Der aktuelle Stand ist ein v0.08 
 6. Im Server-Tab `Letzte Turn-MIZ` uebernehmen.
 7. Die erzeugte `.miz` in DCS laden und Briefing, Slots und AI-Fluege testen.
 
+## Phase 5 Automation Start
+
+Der erste Phase-5-Baustein kapselt einen kompletten Automation-Run:
+
+1. Pruefen, ob der aktuelle Turn abgelaufen ist.
+2. Aktuelles Mission Result importieren, falls vorhanden.
+3. Bei kaputtem Mission Result abbrechen.
+4. Optional DCS stoppen.
+5. Naechsten Campaign-State berechnen.
+6. Naechste Turn-MIZ vorbereiten.
+7. Optional DCS mit genau dieser Turn-MIZ starten.
+
+Manueller Testlauf:
+
+```powershell
+Invoke-RestMethod -Method Post `
+  -Uri "http://localhost:5055/api/scheduler/run-once" `
+  -Headers @{ Authorization = "Bearer <token>" }
+```
+
 ## Wichtiger v0.08 Stand
 
 - Player-Slots bleiben aus der Template-MIZ erhalten.
