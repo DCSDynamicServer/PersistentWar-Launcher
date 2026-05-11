@@ -455,7 +455,8 @@ button.wide {
 .squadrons,
 .ground-units,
 .supply-depots,
-.factories {
+.factories,
+.readiness-items {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
@@ -674,12 +675,28 @@ button.wide {
   margin-top: 5px;
 }
 
+.readiness-summary {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  margin: 12px 0;
+  padding: 12px;
+}
+
+.readiness-summary span,
+.readiness-item small {
+  color: var(--muted);
+}
+
 .ai-order,
 .package-card,
 .squadron-card,
 .ground-card,
 .depot-card,
-.factory-card {
+.factory-card,
+.readiness-item {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel-soft);
@@ -691,10 +708,23 @@ button.wide {
 .squadron-card header,
 .ground-card header,
 .depot-card header,
-.factory-card header {
+.factory-card header,
+.readiness-item header {
   display: flex;
   justify-content: space-between;
   gap: 10px;
+}
+
+.readiness-item.ok {
+  border-color: rgba(94, 212, 138, .45);
+}
+
+.readiness-item.warn {
+  border-color: rgba(243, 188, 79, .55);
+}
+
+.readiness-item.error {
+  border-color: rgba(255, 103, 94, .6);
 }
 
 .ai-order header {

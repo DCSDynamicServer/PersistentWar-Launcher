@@ -44,6 +44,7 @@
         <div class="campaign-actions">
           <button id="saveStateBtn">State speichern</button>
           <button id="refreshBtn" class="secondary">Refresh</button>
+          <button id="resetCampaignBtn" class="secondary" type="button">Turn 1 Reset</button>
         </div>
       </div>
 
@@ -142,6 +143,21 @@
     </section>
 
     <section class="tab-panel" data-tab-panel="mission">
+      <div class="panel readiness-panel">
+        <div class="panel-heading">
+          <h2>v0.08 Readiness</h2>
+          <div class="turn-actions">
+            <button id="prepareSmokeStateBtn" class="secondary" type="button">Turn-1-Teststate</button>
+            <button id="checkReadinessBtn" class="secondary" type="button">Check</button>
+          </div>
+        </div>
+        <div class="readiness-summary">
+          <strong id="readinessStatus">-</strong>
+          <span id="readinessSummary">-</span>
+        </div>
+        <div id="readinessItems" class="readiness-items"></div>
+      </div>
+
       <div class="panel">
         <div class="panel-heading">
           <h2>Mission Plan</h2>

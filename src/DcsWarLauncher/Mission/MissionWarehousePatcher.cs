@@ -13,8 +13,6 @@ public static class MissionWarehousePatcher
             return warehouseText;
         }
 
-        warehouseText = PatchKnownDcsAirportWarehouses(warehouseText, plan.WarehousePatches);
-
         var markerStart = "-- WL_WAREHOUSE_PATCH_BEGIN";
         var markerEnd = "-- WL_WAREHOUSE_PATCH_END";
         var patchBlock = BuildPatchBlock(plan.WarehousePatches, markerStart, markerEnd);
@@ -128,7 +126,7 @@ public static class MissionWarehousePatcher
 
     private static string ReplaceFuelInit(string text, string fuelKey, int value)
     {
-        var pattern = $@"(?<head>\[""{Regex.Escape(fuelKey)}""\]\s*=\s*\{{(?<body>.*?))(?<tail>\n\s*\}},\s*-- end of \[""{Regex.Escape(fuelKey)}""\])";
+        var pattern = $@"(?<head>\[""{Regex.Escape(fuelKey)}""\]\s*=\s*\{{)(?<body>.*?)(?<tail>\n\s*\}},\s*-- end of \[""{Regex.Escape(fuelKey)}""\])";
         return Regex.Replace(
             text,
             pattern,

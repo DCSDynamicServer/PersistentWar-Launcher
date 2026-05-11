@@ -37,6 +37,12 @@ const els = {
   airSuperiority: document.querySelector("#airSuperiority"),
   advanceTurnBtn: document.querySelector("#advanceTurnBtn"),
   saveStateBtn: document.querySelector("#saveStateBtn"),
+  resetCampaignBtn: document.querySelector("#resetCampaignBtn"),
+  prepareSmokeStateBtn: document.querySelector("#prepareSmokeStateBtn"),
+  checkReadinessBtn: document.querySelector("#checkReadinessBtn"),
+  readinessStatus: document.querySelector("#readinessStatus"),
+  readinessSummary: document.querySelector("#readinessSummary"),
+  readinessItems: document.querySelector("#readinessItems"),
   previewMissionPlanBtn: document.querySelector("#previewMissionPlanBtn"),
   exportMissionPlanBtn: document.querySelector("#exportMissionPlanBtn"),
   prepareMissionBtn: document.querySelector("#prepareMissionBtn"),
@@ -156,6 +162,63 @@ async function loadMissionResultStatus() {
   els.missionResultMeta.textContent = `${sizeKb} - ${modified}`;
   els.importMissionResultBtn.disabled = false;
   els.advanceFromResultBtn.disabled = false;
+}
+
+async function loadReadiness() {
+  const response = await fetch("/api/readiness/v008");
+  const report = await response.json().catch(() => null);
+  if (!response.ok || !report) {
+    els.readinessStatus.textContent = "Fehler";
+    els.readinessStatus.className = "bad-text";
+    els.readinessSummary.textContent = "Readiness konnte nicht geladen werden.";
+    els.readinessItems.innerHTML = "";
+    return;
+  }
+
+  els.readinessStatus.textContent = report.isReady ? "Bereit" : "Blockiert";
+  els.readinessStatus.className = report.isReady ? "ok-text" : "bad-text";
+  els.readinessSummary.textContent = report.summary;
+  renderReadinessItems(report.items || []);
+}
+
+async function prepareSmokeState() {
+  els.readinessSummary.textContent = "Bereite v0.08 Smoke-State vor...";
+  const response = await fetch("/api/readiness/v008/prepare-smoke-state", {
+    method: "POST",
+    headers: authHeaders()
+  });
+
+  const report = await response.json().catch(() => null);
+  if (!response.ok || !report) {
+    els.readinessStatus.textContent = "Fehler";
+    els.readinessStatus.className = "bad-text";
+    els.readinessSummary.textContent = response.status === 401
+      ? "Host Token fehlt oder ist ungueltig. Bitte im Server-Tab eintragen."
+      : "Smoke-State konnte nicht vorbereitet werden.";
+    return;
+  }
+
+  els.readinessStatus.textContent = report.isReady ? "Bereit" : "Blockiert";
+  els.readinessStatus.className = report.isReady ? "ok-text" : "bad-text";
+  els.readinessSummary.textContent = "Smoke-State vorbereitet. Vorheriger State wurde als Backup gesichert.";
+  renderReadinessItems(report.items || []);
+  await loadState();
+}
+
+function renderReadinessItems(items) {
+  els.readinessItems.innerHTML = "";
+  for (const item of items) {
+    const card = document.createElement("article");
+    card.className = `readiness-item ${item.status}`;
+    card.innerHTML = `
+      <header>
+        <strong>${item.name}</strong>
+        <span>${item.status}</span>
+      </header>
+      <small>${item.message}</small>
+    `;
+    els.readinessItems.appendChild(card);
+  }
 }
 
 function useGeneratedMission() {
@@ -536,6 +599,32 @@ async function saveState() {
   await loadState();
 }
 
+async function resetCampaign() {
+  const confirmed = window.confirm("Campaign wirklich auf Turn 1 zuruecksetzen? Der aktuelle State wird vorher als Backup gesichert.");
+  if (!confirmed) {
+    return;
+  }
+
+  els.actionMessage.textContent = "Setze Campaign auf Turn 1 zurueck...";
+  const response = await fetch("/api/war/reset-default", {
+    method: "POST",
+    headers: authHeaders()
+  });
+
+  const state = await response.json().catch(() => null);
+  if (!response.ok || !state) {
+    els.actionMessage.textContent = response.status === 401
+      ? "Host Token fehlt oder ist ungueltig. Bitte im Server-Tab eintragen."
+      : "Campaign konnte nicht zurueckgesetzt werden.";
+    return;
+  }
+
+  currentState = state;
+  els.actionMessage.textContent = "Campaign wurde auf Turn 1 zurueckgesetzt. Vorheriger State wurde gesichert.";
+  await loadState();
+  await loadReadiness();
+}
+
 async function advanceTurn() {
   els.turnMessage.textContent = "AI wertet Turn aus...";
   const report = {
@@ -765,6 +854,9 @@ els.importMissionResultBtn.addEventListener("click", importMissionResult);
 els.advanceFromResultBtn.addEventListener("click", advanceTurnFromResult);
 els.advanceTurnBtn.addEventListener("click", advanceTurn);
 els.saveStateBtn.addEventListener("click", saveState);
+els.resetCampaignBtn.addEventListener("click", resetCampaign);
+els.prepareSmokeStateBtn.addEventListener("click", prepareSmokeState);
+els.checkReadinessBtn.addEventListener("click", loadReadiness);
 els.previewMissionPlanBtn.addEventListener("click", previewMissionPlan);
 els.exportMissionPlanBtn.addEventListener("click", exportMissionPlan);
 els.prepareMissionBtn.addEventListener("click", prepareMission);
@@ -777,6 +869,7 @@ els.refreshBtn.addEventListener("click", async () => {
   await loadScheduler();
   await loadGeneratedMission();
   await loadMissionResultStatus();
+  await loadReadiness();
   await loadState();
   await loadTemplateInspection();
 });
@@ -785,6 +878,7 @@ loadStatus();
 loadScheduler();
 loadGeneratedMission();
 loadMissionResultStatus();
+loadReadiness();
 loadState();
 loadTemplateInspection();
 setInterval(loadStatus, 5000);

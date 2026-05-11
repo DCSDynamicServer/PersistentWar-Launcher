@@ -170,25 +170,23 @@ WL_RESERVE_RED_KRYMSK_01
 
 ## Warehouse/Fuel/Ammo
 
-Der Launcher schreibt in vorbereitete Turn-MIZ-Dateien aktuell einen sicheren
-`warLauncher`-Block in die `warehouses` Datei. Dieser Block spiegelt Fuel, Ammo
-und Aircraft-Verfuegbarkeit aus dem Campaign-State, ohne unbekannte DCS-Warehouse-
-IDs aggressiv zu ueberschreiben.
+Der Launcher exportiert Warehouse/Fuel/Ammo-Daten fuer v0.08 nur in den
+`war-launcher/mission-plan.json`. Die `.miz`-Datei bekommt fuer v0.08 keine
+geaenderte `warehouses` Datei, weil DCS beim Terrain-Graphics-Init empfindlich
+auf zusaetzliche oder veraenderte Warehouse-Strukturen reagieren kann.
 
 Aktueller Modus:
 
 ```text
-campaign-supply-shadow + bekannte Caucasus-Airport-Warehouse-IDs
+mission-plan-only
 ```
 
 Wichtig:
 
 - Die Template-MIZ sollte eine normale `warehouses` Datei enthalten.
-- Wenn die Datei fehlt, legt der Launcher sie in der generierten Turn-MIZ an.
-- Fuer bekannte Caucasus-Airbases patcht der Launcher echte `warehouses["airports"][id]` Eintraege.
-- Aktuell werden `unlimitedFuel`, `OperatingLevel_Fuel`, `OperatingLevel_Eqp`, `OperatingLevel_Air` und Fuel-Init-Werte gesetzt.
-- Munitions- und Aircraft-Bestaende bleiben noch vorsichtig, bis echte DCS-Weapon-/Aircraft-Inventare sauber gemappt sind.
-- Der Shadow-Block bleibt als lesbare Diagnose in der MIZ.
+- Der Launcher veraendert fuer v0.08 keine echten DCS-Airport-Warehouse-Eintraege.
+- Der Launcher legt fuer v0.08 auch keinen Shadow-Block in `warehouses` an.
+- Echte Fuel/Ammo/Aircraft-Patches werden spaeter wieder aktiviert, wenn sie ingame stabil gegen `terrain graphics init` getestet sind.
 
 Bekannte Caucasus-IDs:
 
@@ -230,7 +228,7 @@ Der Launcher erkennt aktuell:
 - Objective-Anker `WL_OBJ_...`
 - Front-Anker `WL_FRONT_...`
 - vorbereitete Airbase-/Heli-/FARP-Anker im MissionPlan
-- Warehouse-Shadow-Patches in generierten Turn-MIZ-Dateien
+- Warehouse/Fuel/Ammo-Planung im `war-launcher/mission-plan.json`
 
 Der Launcher veraendert aktuell nicht:
 
@@ -238,6 +236,7 @@ Der Launcher veraendert aktuell nicht:
 - Units
 - Routes
 - Trigger-Logik
+- Warehouse-Datei
 - Airbase-Koalitionen in der MIZ
 
 ## Checkliste vor dem Speichern

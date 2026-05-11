@@ -43,8 +43,12 @@
 - Automatische BattleReports aus Kills, Verlusten, Objective-Events und Missionsausgang erzeugen.
 - Mission-Result-Format fuer direkte Reports, Eventlisten und JSONL/DCS-Log-Exports dokumentieren.
 - Warehouse/Fuel/Ammo-Patching fuer einfache Supply-Wirkung pro Base vorbereiten.
-- Warehouse-Shadow-Block in generierte `.miz` schreiben, bis echte DCS-Warehouse-IDs sicher gemappt sind.
-- Bekannte Caucasus-Airport-Warehouse-IDs fuer Fuel/Operating-Level-Patching mappen.
+- Warehouse-Plan im `mission-plan.json` exportieren; `.miz`-`warehouses` fuer v0.08 unveraendert lassen.
+- Bekannte Caucasus-Airport-Warehouse-IDs fuer spaeteres Fuel/Operating-Level-Patching mappen.
+- Echte DCS-Airport-Warehouse-Mutation und Shadow-Warehouse-Block fuer v0.08 deaktivieren, bis Terrain-Graphics-Init-Stabilitaet ingame bestaetigt ist.
+- v0.08 Readiness-Check fuer finalen DCS-Smoke-Test im Mission-Tab anzeigen.
+- Manuellen v0.08 Smoke-State vorbereiten koennen, wenn der aktive Test-State ausgeblutet ist.
+- Campaign-State manuell auf Turn 1 zuruecksetzen koennen, inklusive automatischem Backup.
 - Operationalen 6h-Loop herstellen: Mission vorbereiten, Server starten, Turn laufen lassen, Ergebnis importieren, naechste Mission erzeugen.
 - Minimaler Admin-Testbetrieb mit mehreren Spielern auf dem Server.
 

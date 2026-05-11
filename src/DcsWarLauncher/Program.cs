@@ -17,6 +17,7 @@ builder.Services.AddSingleton<TurnEngine>();
 builder.Services.AddSingleton<MissionPlanExporter>();
 builder.Services.AddSingleton<MissionTemplateInspector>();
 builder.Services.AddSingleton<MissionResultImporter>();
+builder.Services.AddSingleton<ReadinessChecker>();
 builder.Services.AddSingleton<TurnSchedulerState>();
 builder.Services.AddHostedService<TurnSchedulerService>();
 
@@ -34,6 +35,23 @@ app.MapGet("/api/health", () => Results.Ok(new
 app.MapGet("/api/server/status", (DcsProcessService dcs) => Results.Ok(dcs.GetStatus()));
 
 app.MapGet("/api/scheduler/status", (TurnSchedulerState scheduler) => Results.Ok(scheduler.GetSnapshot()));
+
+app.MapGet("/api/readiness/v008", async (ReadinessChecker readiness) =>
+{
+    var result = await readiness.CheckV008Async();
+    return Results.Ok(result);
+});
+
+app.MapPost("/api/readiness/v008/prepare-smoke-state", async (HttpContext context, ReadinessChecker readiness) =>
+{
+    if (!IsAuthorized(context, app.Configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    var result = await readiness.PrepareV008SmokeStateAsync();
+    return Results.Ok(result);
+});
 
 app.MapPost("/api/server/start", async (HttpContext context, DcsProcessService dcs) =>
 {
@@ -74,6 +92,18 @@ app.MapPost("/api/war/state", async (HttpContext context, StateStore store) =>
     }
 
     await store.SaveAsync(state with { UpdatedUtc = DateTimeOffset.UtcNow });
+    return Results.Ok(await store.LoadAsync());
+});
+
+app.MapPost("/api/war/reset-default", async (HttpContext context, StateStore store) =>
+{
+    if (!IsAuthorized(context, app.Configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    var state = WarState.CreateDefault();
+    await store.SaveAsync(state);
     return Results.Ok(await store.LoadAsync());
 });
 

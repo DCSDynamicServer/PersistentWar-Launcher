@@ -83,7 +83,6 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
         await EmbedMissionPlanAsync(mizFilePath, plan.FilePath);
         await PatchMissionBriefingAsync(mizFilePath, state);
         await PatchGeneratedAiFlightsAsync(mizFilePath, plan.FilePath);
-        await PatchWarehousePlanAsync(mizFilePath, plan.FilePath);
         return new PreparedMissionResult(
             mizFileName,
             mizFilePath,

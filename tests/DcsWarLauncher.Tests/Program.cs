@@ -42,6 +42,9 @@ var tests = new (string Name, Action Test)[]
     ("Mission result importer maps root event array", MissionResultImporterMapsRootEventArray),
     ("Mission result importer maps json lines", MissionResultImporterMapsJsonLines),
     ("Mission result importer picks latest result file", MissionResultImporterPicksLatestResultFile),
+    ("Readiness checker reports v0.08 smoke status", ReadinessCheckerReportsV008SmokeStatus),
+    ("Readiness checker can prepare smoke state", ReadinessCheckerCanPrepareSmokeState),
+    ("Readiness checker requires current generated mission", ReadinessCheckerRequiresCurrentGeneratedMission),
     ("Mission template inspector reports WL anchors", MissionTemplateInspectorReportsWlAnchors),
     ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
 };
@@ -607,11 +610,10 @@ static void MissionPlanExporterPreparesMissionCopy()
         using var warehouseStream = warehouseEntry.Open();
         using var warehouseReader = new StreamReader(warehouseStream);
         var warehouseText = warehouseReader.ReadToEnd();
-        Assert.True(warehouseText.Contains("WL_WAREHOUSE_PATCH_BEGIN", StringComparison.Ordinal), "Expected warehouse patch marker.");
-        Assert.True(warehouseText.Contains("campaign-supply-shadow", StringComparison.Ordinal), "Expected warehouse patch mode.");
-        Assert.True(warehouseText.Contains("Kutaisi", StringComparison.Ordinal), "Expected airbase warehouse data.");
-        Assert.True(warehouseText.Contains("[\"unlimitedFuel\"] = false", StringComparison.Ordinal), "Expected finite fuel warehouse patch.");
-        Assert.True(warehouseText.Contains("[\"InitFuel\"] = 84", StringComparison.Ordinal), "Expected campaign fuel level in warehouse patch.");
+        Assert.True(!warehouseText.Contains("WL_WAREHOUSE_PATCH_BEGIN", StringComparison.Ordinal), "Expected v0.08 to leave DCS warehouses untouched.");
+        Assert.True(!warehouseText.Contains("campaign-supply-shadow", StringComparison.Ordinal), "Expected v0.08 to avoid warehouse shadow writes for DCS load stability.");
+        Assert.True(!warehouseText.Contains("[\"unlimitedFuel\"] = false", StringComparison.Ordinal), "Expected DCS airport warehouses to remain untouched for v0.08 smoke stability.");
+        Assert.Equal(4, CountOccurrences(warehouseText, "[\"InitFuel\"] = 100"));
     }
     finally
     {
@@ -777,6 +779,110 @@ static void MissionResultImporterPicksLatestResultFile()
     }
 }
 
+static void ReadinessCheckerReportsV008SmokeStatus()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var templatePath = Path.Combine(root, "Data", "Templates");
+        Directory.CreateDirectory(templatePath);
+        CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
+        var environment = new TestEnvironment(root);
+        var store = new StateStore(environment);
+        var state = WarState.CreateDefault();
+        store.SaveAsync(state).GetAwaiter().GetResult();
+        new MissionPlanExporter(environment).PrepareMissionAsync(state).GetAwaiter().GetResult();
+        var checker = new ReadinessChecker(
+            store,
+            new MissionTemplateInspector(environment),
+            new MissionPlanExporter(environment),
+            new MissionResultImporter(environment));
+
+        var report = checker.CheckV008Async().GetAwaiter().GetResult();
+
+        Assert.Equal("v0.08", report.Version);
+        Assert.True(report.IsReady, "Expected no blocking readiness errors for the minimal smoke setup.");
+        Assert.True(report.Items.Any(item => item.Name == "Mission Template" && item.Status == "ok"), "Expected readable template check.");
+        Assert.True(report.Items.Any(item =>
+            item.Name == "Warehouse Plan" &&
+            item.Status == "ok" &&
+            item.Message.Contains("MIZ warehouses stay unchanged", StringComparison.Ordinal)), "Expected mission-plan-only warehouse readiness.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void ReadinessCheckerRequiresCurrentGeneratedMission()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var templatePath = Path.Combine(root, "Data", "Templates");
+        Directory.CreateDirectory(templatePath);
+        CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
+        var environment = new TestEnvironment(root);
+        var store = new StateStore(environment);
+        var state = WarState.CreateDefault() with { CampaignId = "campaign-current", Turn = 2 };
+        var oldState = state with { CampaignId = "campaign-old", Turn = 1 };
+        store.SaveAsync(state).GetAwaiter().GetResult();
+        new MissionPlanExporter(environment).PrepareMissionAsync(oldState).GetAwaiter().GetResult();
+        var checker = new ReadinessChecker(
+            store,
+            new MissionTemplateInspector(environment),
+            new MissionPlanExporter(environment),
+            new MissionResultImporter(environment));
+
+        var report = checker.CheckV008Async().GetAwaiter().GetResult();
+
+        Assert.True(!report.IsReady, "Expected stale generated mission to block readiness.");
+        Assert.True(report.Items.Any(item => item.Name == "Generated MIZ" && item.Status == "error"), "Expected generated MIZ error.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void ReadinessCheckerCanPrepareSmokeState()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var templatePath = Path.Combine(root, "Data", "Templates");
+        Directory.CreateDirectory(templatePath);
+        CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
+        var environment = new TestEnvironment(root);
+        var store = new StateStore(environment);
+        store.SaveAsync(WarState.CreateDefault() with
+        {
+            Squadrons = WarState.CreateDefault().Squadrons
+                .Select(squadron => squadron with { AircraftReady = 0, PilotReadiness = 0 })
+                .ToList(),
+            MissionPackages = []
+        }).GetAwaiter().GetResult();
+        var checker = new ReadinessChecker(
+            store,
+            new MissionTemplateInspector(environment),
+            new MissionPlanExporter(environment),
+            new MissionResultImporter(environment));
+
+        var before = checker.CheckV008Async().GetAwaiter().GetResult();
+        var after = checker.PrepareV008SmokeStateAsync().GetAwaiter().GetResult();
+
+        Assert.True(!before.IsReady, "Expected depleted state to block v0.08 smoke readiness.");
+        Assert.True(!after.IsReady, "Expected prepared smoke state to wait for a fresh generated MIZ.");
+        Assert.True(after.Items.Any(item => item.Name == "AI Packages" && item.Status == "ok"), "Expected prepared smoke state to restore AI packages.");
+        Assert.True(after.Items.Any(item => item.Name == "Generated MIZ" && item.Status == "error"), "Expected a fresh Turn-MIZ to be required after reset.");
+        Assert.True(Directory.GetFiles(Path.Combine(root, "Data", "Backups"), "*.json").Length > 0, "Expected prior state backup.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
 static void MissionTemplateInspectorReportsMissingTemplate()
 {
     var root = CreateTempRoot();
@@ -842,6 +948,19 @@ static void AddZipEntry(ZipArchive archive, string name, string content)
     using var stream = entry.Open();
     using var writer = new StreamWriter(stream);
     writer.Write(content);
+}
+
+static int CountOccurrences(string text, string value)
+{
+    var count = 0;
+    var index = 0;
+    while ((index = text.IndexOf(value, index, StringComparison.Ordinal)) >= 0)
+    {
+        count++;
+        index += value.Length;
+    }
+
+    return count;
 }
 
 static class Assert
