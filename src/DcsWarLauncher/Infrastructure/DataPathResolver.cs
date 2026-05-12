@@ -2,6 +2,14 @@ namespace DcsWarLauncher.Infrastructure;
 
 public static class DataPathResolver
 {
+    public static string GetDataRoot(IWebHostEnvironment environment, IConfiguration configuration)
+    {
+        var configuredDataRoot = configuration["Launcher:DataRoot"];
+        return string.IsNullOrWhiteSpace(configuredDataRoot)
+            ? GetDataRoot(environment)
+            : configuredDataRoot;
+    }
+
     public static string GetDataRoot(IWebHostEnvironment environment)
     {
         var contentData = Path.Combine(environment.ContentRootPath, "Data");

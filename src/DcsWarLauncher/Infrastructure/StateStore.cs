@@ -3,7 +3,7 @@ using DcsWarLauncher.Domain;
 
 namespace DcsWarLauncher.Infrastructure;
 
-public sealed class StateStore(IWebHostEnvironment environment)
+public sealed class StateStore(IWebHostEnvironment environment, IConfiguration? configuration = null)
 {
     private const int MaxBackupFiles = 30;
 
@@ -12,8 +12,8 @@ public sealed class StateStore(IWebHostEnvironment environment)
         WriteIndented = true
     };
 
-    private readonly string _path = Path.Combine(DataPathResolver.GetDataRoot(environment), "war-state.json");
-    private readonly string _backupPath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Backups");
+    private readonly string _path = Path.Combine(GetDataRoot(environment, configuration), "war-state.json");
+    private readonly string _backupPath = Path.Combine(GetDataRoot(environment, configuration), "Backups");
 
     public async Task<WarState> LoadAsync()
     {
@@ -79,4 +79,9 @@ public sealed class StateStore(IWebHostEnvironment environment)
             backup.Delete();
         }
     }
+
+    private static string GetDataRoot(IWebHostEnvironment environment, IConfiguration? configuration) =>
+        configuration is null
+            ? DataPathResolver.GetDataRoot(environment)
+            : DataPathResolver.GetDataRoot(environment, configuration);
 }

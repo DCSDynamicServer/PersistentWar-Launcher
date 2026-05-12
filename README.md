@@ -72,6 +72,18 @@ Empfohlene Server-Mission-Strategie:
 - `src/DcsWarLauncher/Data/Results`: Missionsergebnisse fuer BattleReports.
 - `docs/TEMPLATE_MIZ_GUIDE.md`: Regeln fuer Template-MIZ, WL-Anker und Benennung.
 
+Fuer Serverbetrieb sollte `Launcher:DataRoot` fest auf den echten Data-Ordner gesetzt werden.
+Dann sucht der Launcher unabhaengig vom EXE-Startordner immer dort nach Templates,
+Generated-MIZ, Exports, Results und `war-state.json`.
+
+Beispiel:
+
+```json
+"Launcher": {
+  "DataRoot": "C:\\Users\\DCS\\Documents\\DCS-Tools\\PersistentWar-Launcher\\src\\DcsWarLauncher\\Data"
+}
+```
+
 ## Lokal starten
 
 ```powershell

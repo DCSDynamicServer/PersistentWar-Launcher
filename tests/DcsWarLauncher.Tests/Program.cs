@@ -56,6 +56,7 @@ var tests = new (string Name, Action Test)[]
     ("DCS config check requires mission source", DcsConfigCheckRequiresMissionSource),
     ("Mission template inspector reports WL anchors", MissionTemplateInspectorReportsWlAnchors),
     ("Mission template inspector finds source data from repo root", MissionTemplateInspectorFindsSourceDataFromRepoRoot),
+    ("Mission template inspector uses configured data root", MissionTemplateInspectorUsesConfiguredDataRoot),
     ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
 };
 
@@ -927,6 +928,35 @@ static void MissionTemplateInspectorFindsSourceDataFromRepoRoot()
         Assert.True(result.IsReadable, "Expected template under src/DcsWarLauncher/Data to be found from repo root.");
         Assert.Equal("template-test.miz", result.FileName);
         Assert.True(result.FilePath.Contains(Path.Combine("src", "DcsWarLauncher", "Data", "Templates"), StringComparison.OrdinalIgnoreCase), "Expected source data path.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionTemplateInspectorUsesConfiguredDataRoot()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var configuredDataRoot = Path.Combine(root, "ConfiguredData");
+        var templatePath = Path.Combine(configuredDataRoot, "Templates");
+        Directory.CreateDirectory(templatePath);
+        CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Launcher:DataRoot"] = configuredDataRoot
+            })
+            .Build();
+        var environment = new TestEnvironment(Path.Combine(root, "bin", "Release", "net8.0"));
+        var inspector = new MissionTemplateInspector(environment, configuration);
+
+        var result = inspector.InspectLatest();
+
+        Assert.True(result.IsReadable, "Expected configured DataRoot template to be used.");
+        Assert.Equal(Path.Combine(configuredDataRoot, "Templates", "template-test.miz"), result.FilePath);
     }
     finally
     {

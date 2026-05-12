@@ -6,16 +6,16 @@ using DcsWarLauncher.Infrastructure;
 
 namespace DcsWarLauncher.Mission;
 
-public sealed class MissionPlanExporter(IWebHostEnvironment environment)
+public sealed class MissionPlanExporter(IWebHostEnvironment environment, IConfiguration? configuration = null)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true
     };
 
-    private readonly string _exportPath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Exports");
-    private readonly string _templatePath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Templates");
-    private readonly string _generatedPath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Generated");
+    private readonly string _exportPath = Path.Combine(GetDataRoot(environment, configuration), "Exports");
+    private readonly string _templatePath = Path.Combine(GetDataRoot(environment, configuration), "Templates");
+    private readonly string _generatedPath = Path.Combine(GetDataRoot(environment, configuration), "Generated");
 
     private sealed record ResolvedAnchor(string AnchorName, double X, double Y);
 
@@ -594,7 +594,7 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
         var template = GetLatestTemplateOrNull();
         return template is null
             ? []
-            : new MissionTemplateInspector(environment).Inspect(template.FullName).Anchors;
+            : new MissionTemplateInspector(environment, configuration).Inspect(template.FullName).Anchors;
     }
 
     private static string ToAnchorToken(string value) =>
@@ -787,4 +787,9 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment)
             .Replace("\r\n", "\\n", StringComparison.Ordinal)
             .Replace("\n", "\\n", StringComparison.Ordinal)
             .Replace("\r", "\\n", StringComparison.Ordinal) + "\"";
+
+    private static string GetDataRoot(IWebHostEnvironment environment, IConfiguration? configuration) =>
+        configuration is null
+            ? DataPathResolver.GetDataRoot(environment)
+            : DataPathResolver.GetDataRoot(environment, configuration);
 }

@@ -4,10 +4,10 @@ using DcsWarLauncher.Infrastructure;
 
 namespace DcsWarLauncher.Mission;
 
-public sealed partial class MissionTemplateInspector(IWebHostEnvironment environment)
+public sealed partial class MissionTemplateInspector(IWebHostEnvironment environment, IConfiguration? configuration = null)
 {
     private static readonly string[] RequiredFiles = ["mission", "warehouses", "options", "theatre"];
-    private readonly string _templatePath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Templates");
+    private readonly string _templatePath = Path.Combine(GetDataRoot(environment, configuration), "Templates");
 
     public MissionTemplateInspection InspectLatest()
     {
@@ -269,4 +269,9 @@ public sealed partial class MissionTemplateInspector(IWebHostEnvironment environ
             out var result)
             ? result
             : null;
+
+    private static string GetDataRoot(IWebHostEnvironment environment, IConfiguration? configuration) =>
+        configuration is null
+            ? DataPathResolver.GetDataRoot(environment)
+            : DataPathResolver.GetDataRoot(environment, configuration);
 }

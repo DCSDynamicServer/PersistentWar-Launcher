@@ -4,10 +4,10 @@ using DcsWarLauncher.Infrastructure;
 
 namespace DcsWarLauncher.Mission;
 
-public sealed class MissionResultImporter(IWebHostEnvironment environment)
+public sealed class MissionResultImporter(IWebHostEnvironment environment, IConfiguration? configuration = null)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private readonly string _resultsPath = Path.Combine(DataPathResolver.GetDataRoot(environment), "Results");
+    private readonly string _resultsPath = Path.Combine(GetDataRoot(environment, configuration), "Results");
 
     public MissionResultStatus GetLatestResultStatus()
     {
@@ -300,6 +300,11 @@ public sealed class MissionResultImporter(IWebHostEnvironment environment)
             RedLosses,
             AirSuperiority);
     }
+
+    private static string GetDataRoot(IWebHostEnvironment environment, IConfiguration? configuration) =>
+        configuration is null
+            ? DataPathResolver.GetDataRoot(environment)
+            : DataPathResolver.GetDataRoot(environment, configuration);
 }
 
 public sealed record MissionResultStatus(

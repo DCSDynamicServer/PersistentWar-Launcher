@@ -26,6 +26,7 @@ Passe `src/DcsWarLauncher/appsettings.json` an:
 - `DefaultMissionPath`: Standard-`.miz`, die gestartet wird.
 - `StartArguments`: CLI-Argumente fuer DCS. `{mission}` wird durch den Mission-Pfad ersetzt.
 - `RemoteToken`: Token fuer Remote-Start, Stop und State-Speichern.
+- `DataRoot`: Optional, aber fuer Serverbetrieb empfohlen. Fester Pfad zum Launcher-Data-Ordner, damit Templates, Generated-MIZ, Results und `war-state.json` unabhaengig vom EXE-Startordner gefunden werden.
 
 Scheduler fuer 24/7-Betrieb:
 
