@@ -55,6 +55,7 @@ var tests = new (string Name, Action Test)[]
     ("DCS config check allows serverSettings mission list start", DcsConfigCheckAllowsServerSettingsMissionListStart),
     ("DCS config check requires mission source", DcsConfigCheckRequiresMissionSource),
     ("Mission template inspector reports WL anchors", MissionTemplateInspectorReportsWlAnchors),
+    ("Mission template inspector finds source data from repo root", MissionTemplateInspectorFindsSourceDataFromRepoRoot),
     ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
 };
 
@@ -904,6 +905,28 @@ static void MissionTemplateInspectorReportsMissingTemplate()
         Assert.Equal(0, result.ClientSlotCount);
         Assert.True(!result.TemplateDirectoryExists, "Expected missing template directory to be reported.");
         Assert.True(result.Warnings.Any(warning => warning.Contains("No .miz template", StringComparison.Ordinal)), "Expected missing template warning.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionTemplateInspectorFindsSourceDataFromRepoRoot()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var templatePath = Path.Combine(root, "src", "DcsWarLauncher", "Data", "Templates");
+        Directory.CreateDirectory(templatePath);
+        CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
+        var inspector = new MissionTemplateInspector(new TestEnvironment(root));
+
+        var result = inspector.InspectLatest();
+
+        Assert.True(result.IsReadable, "Expected template under src/DcsWarLauncher/Data to be found from repo root.");
+        Assert.Equal("template-test.miz", result.FileName);
+        Assert.True(result.FilePath.Contains(Path.Combine("src", "DcsWarLauncher", "Data", "Templates"), StringComparison.OrdinalIgnoreCase), "Expected source data path.");
     }
     finally
     {
