@@ -53,6 +53,7 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
         var deploymentDirectoryExists = !string.IsNullOrWhiteSpace(deploymentDirectory) && Directory.Exists(deploymentDirectory);
         var serverSettingsConfigured = !string.IsNullOrWhiteSpace(serverSettingsPath);
         var serverSettingsExists = serverSettingsConfigured && File.Exists(serverSettingsPath);
+        var canUseServerSettingsMissionList = patchServerSettings && serverSettingsConfigured;
 
         if (!dcsExecutableConfigured)
         {
@@ -76,9 +77,9 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
         {
             warnings.Add("DCS start arguments are not configured.");
         }
-        else if (!startArgumentsContainMissionPlaceholder)
+        else if (!startArgumentsContainMissionPlaceholder && !canUseServerSettingsMissionList)
         {
-            warnings.Add("DCS start arguments should contain {mission}.");
+            warnings.Add("DCS start arguments should contain {mission} or serverSettings.lua patching must be configured.");
         }
 
         if (!remoteTokenConfigured)
@@ -112,7 +113,7 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
         var isReady = dcsExecutableExists &&
             defaultMissionExists &&
             startArgumentsConfigured &&
-            startArgumentsContainMissionPlaceholder &&
+            (startArgumentsContainMissionPlaceholder || canUseServerSettingsMissionList) &&
             remoteTokenConfigured &&
             deploymentTargetConfigured;
         var mode = schedulerEnabled

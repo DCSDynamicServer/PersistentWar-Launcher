@@ -52,6 +52,8 @@ var tests = new (string Name, Action Test)[]
     ("Mission deployment replaces old turn missions", MissionDeploymentReplacesOldTurnMissions),
     ("DCS server settings patcher updates mission list", DcsServerSettingsPatcherUpdatesMissionList),
     ("DCS config check reports safe mode", DcsConfigCheckReportsSafeMode),
+    ("DCS config check allows serverSettings mission list start", DcsConfigCheckAllowsServerSettingsMissionListStart),
+    ("DCS config check requires mission source", DcsConfigCheckRequiresMissionSource),
     ("Mission template inspector reports WL anchors", MissionTemplateInspectorReportsWlAnchors),
     ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
 };
@@ -1128,6 +1130,84 @@ static void DcsConfigCheckReportsSafeMode()
         Assert.True(check.RemoteTokenConfigured, "Expected remote token to be configured.");
         Assert.Equal("Safe automation", check.Mode);
         Assert.True(!check.AutoStartServer, "Expected AutoStart to remain off.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void DcsConfigCheckAllowsServerSettingsMissionListStart()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var exePath = Path.Combine(root, "DCS.exe");
+        var missionPath = Path.Combine(root, "test.miz");
+        var serverMissionDirectory = Path.Combine(root, "ServerMissions");
+        var serverSettingsPath = Path.Combine(root, "Saved Games", "DCS.server", "Config", "serverSettings.lua");
+        Directory.CreateDirectory(serverMissionDirectory);
+        Directory.CreateDirectory(Path.GetDirectoryName(serverSettingsPath)!);
+        File.WriteAllText(exePath, "");
+        File.WriteAllText(missionPath, "");
+        File.WriteAllText(serverSettingsPath, "settings = {}");
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Launcher:DcsExecutablePath"] = exePath,
+                ["Launcher:DefaultMissionPath"] = missionPath,
+                ["Launcher:ServerMissionDirectory"] = serverMissionDirectory,
+                ["Launcher:DeployedMissionFileName"] = "persistent-war-current.miz",
+                ["Launcher:ServerSettingsPath"] = serverSettingsPath,
+                ["Launcher:PatchServerSettings"] = "true",
+                ["Launcher:StartArguments"] = "--server --norender -w DCS.server",
+                ["Launcher:RemoteToken"] = "real-token"
+            })
+            .Build();
+
+        var check = new DcsProcessService(configuration, NullLogger<DcsProcessService>.Instance).GetConfigCheck();
+
+        Assert.True(check.IsReady, "Expected serverSettings mission list mode to be ready without {mission}.");
+        Assert.True(!check.StartArgumentsContainMissionPlaceholder, "Expected start arguments to omit mission placeholder.");
+        Assert.True(check.ServerSettingsConfigured, "Expected serverSettings.lua to be configured.");
+        Assert.True(check.PatchServerSettings, "Expected serverSettings patching to be active.");
+        Assert.True(!check.Warnings.Any(warning => warning.Contains("{mission}", StringComparison.Ordinal)), "Expected no mission placeholder warning.");
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void DcsConfigCheckRequiresMissionSource()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var exePath = Path.Combine(root, "DCS.exe");
+        var missionPath = Path.Combine(root, "test.miz");
+        var serverMissionDirectory = Path.Combine(root, "ServerMissions");
+        Directory.CreateDirectory(serverMissionDirectory);
+        File.WriteAllText(exePath, "");
+        File.WriteAllText(missionPath, "");
+
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Launcher:DcsExecutablePath"] = exePath,
+                ["Launcher:DefaultMissionPath"] = missionPath,
+                ["Launcher:ServerMissionDirectory"] = serverMissionDirectory,
+                ["Launcher:StartArguments"] = "--server --norender -w DCS.server",
+                ["Launcher:PatchServerSettings"] = "false",
+                ["Launcher:RemoteToken"] = "real-token"
+            })
+            .Build();
+
+        var check = new DcsProcessService(configuration, NullLogger<DcsProcessService>.Instance).GetConfigCheck();
+
+        Assert.True(!check.IsReady, "Expected config to require either {mission} or serverSettings patching.");
+        Assert.True(check.Warnings.Any(warning => warning.Contains("{mission}", StringComparison.Ordinal)), "Expected mission source warning.");
     }
     finally
     {
