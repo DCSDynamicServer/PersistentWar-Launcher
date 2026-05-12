@@ -27,9 +27,14 @@ public static class DcsServerSettingsPatcher
 
     public static string PatchMissionList(string serverSettingsText, string missionPath)
     {
-        var normalized = NormalizeRoot(serverSettingsText);
+        var inspection = Inspect(serverSettingsText);
+        if (inspection.Root != "cfg")
+        {
+            throw new InvalidOperationException("serverSettings.lua must use DCS cfg root before missionList can be patched.");
+        }
+
         var missionList = BuildMissionList(missionPath);
-        normalized = PatchListStartIndex(normalized);
+        var normalized = PatchListStartIndex(serverSettingsText);
         var pattern = @"\[""missionList""\]\s*=\s*\{.*?\n\s*\},\s*-- end of \[""missionList""\]";
         if (Regex.IsMatch(normalized, pattern, RegexOptions.Singleline))
         {
@@ -43,19 +48,7 @@ public static class DcsServerSettingsPatcher
             return normalized.Insert(insertAt, $"{Environment.NewLine}{missionList}");
         }
 
-        return $"cfg = {{{Environment.NewLine}\t[\"listStartIndex\"] = 1,{Environment.NewLine}{missionList}{Environment.NewLine}}} -- end of cfg";
-    }
-
-    private static string NormalizeRoot(string serverSettingsText)
-    {
-        if (Regex.IsMatch(serverSettingsText, @"\bcfg\s*=", RegexOptions.Singleline))
-        {
-            return serverSettingsText;
-        }
-
-        return Regex.IsMatch(serverSettingsText, @"\bsettings\s*=", RegexOptions.Singleline)
-            ? Regex.Replace(serverSettingsText, @"\bsettings\s*=", "cfg = ", RegexOptions.Singleline)
-            : serverSettingsText;
+        throw new InvalidOperationException("serverSettings.lua does not contain a patchable DCS cfg table.");
     }
 
     private static string PatchListStartIndex(string serverSettingsText)

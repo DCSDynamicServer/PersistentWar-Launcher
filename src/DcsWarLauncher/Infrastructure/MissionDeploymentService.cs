@@ -48,15 +48,25 @@ public sealed class MissionDeploymentService(IConfiguration configuration, ILogg
         Directory.CreateDirectory(targetDirectory);
         var deleted = CleanupOldTurnMissions(targetDirectory, targetPath);
         File.Copy(sourceMissionPath, targetPath, overwrite: true);
-        var serverSettingsPatched = PatchServerSettings(targetPath);
+        var serverSettingsPatch = PatchServerSettings(targetPath);
+        if (!serverSettingsPatch.Success)
+        {
+            return Task.FromResult(new MissionDeploymentResult(
+                false,
+                serverSettingsPatch.Message,
+                targetPath,
+                deleted,
+                false));
+        }
+
         logger.LogInformation("Deployed mission {SourceMission} to {TargetMission}", sourceMissionPath, targetPath);
 
         return Task.FromResult(new MissionDeploymentResult(
             true,
-            $"Deployed Turn-MIZ to {targetPath}; removed {deleted} old Turn-MIZ file(s); serverSettings patched: {serverSettingsPatched}.",
+            $"Deployed Turn-MIZ to {targetPath}; removed {deleted} old Turn-MIZ file(s); serverSettings patched: {serverSettingsPatch.Patched}.",
             targetPath,
             deleted,
-            serverSettingsPatched));
+            serverSettingsPatch.Patched));
     }
 
     public string ResolveDeploymentTarget(string sourceMissionFileName = "persistent-war-current.miz")
@@ -79,32 +89,40 @@ public sealed class MissionDeploymentService(IConfiguration configuration, ILogg
             : defaultMissionPath;
     }
 
-    private bool PatchServerSettings(string missionPath)
+    private ServerSettingsPatchResult PatchServerSettings(string missionPath)
     {
         if (!configuration.GetValue("Launcher:PatchServerSettings", true))
         {
-            return false;
+            return new(true, "serverSettings patching disabled.", false);
         }
 
         var serverSettingsPath = configuration["Launcher:ServerSettingsPath"];
         if (string.IsNullOrWhiteSpace(serverSettingsPath))
         {
-            return false;
+            return new(false, "serverSettings.lua path is not configured.", false);
         }
 
         var directory = Path.GetDirectoryName(serverSettingsPath);
         if (string.IsNullOrWhiteSpace(directory))
         {
-            return false;
+            return new(false, "serverSettings.lua path has no directory.", false);
         }
 
-        Directory.CreateDirectory(directory);
-        var existing = File.Exists(serverSettingsPath)
-            ? File.ReadAllText(serverSettingsPath)
-            : "settings = {}";
+        if (!File.Exists(serverSettingsPath))
+        {
+            return new(false, "serverSettings.lua does not exist. Create it once with the DCS WebGUI before enabling patching.", false);
+        }
+
+        var existing = File.ReadAllText(serverSettingsPath);
+        var inspection = DcsServerSettingsPatcher.Inspect(existing);
+        if (inspection.Root != "cfg")
+        {
+            return new(false, "serverSettings.lua is not a DCS cfg file. Start/save the server once via WebGUI, then run automation again.", false);
+        }
+
         var patched = DcsServerSettingsPatcher.PatchMissionList(existing, missionPath);
         File.WriteAllText(serverSettingsPath, patched);
-        return true;
+        return new(true, "serverSettings.lua missionList patched.", true);
     }
 
     private int CleanupOldTurnMissions(string targetDirectory, string targetPath)
@@ -132,4 +150,6 @@ public sealed class MissionDeploymentService(IConfiguration configuration, ILogg
 
         return deleted;
     }
+
+    private sealed record ServerSettingsPatchResult(bool Success, string Message, bool Patched);
 }

@@ -51,7 +51,7 @@ var tests = new (string Name, Action Test)[]
     ("Turn automation blocks invalid mission result", TurnAutomationBlocksInvalidMissionResult),
     ("Mission deployment replaces old turn missions", MissionDeploymentReplacesOldTurnMissions),
     ("DCS server settings patcher updates mission list", DcsServerSettingsPatcherUpdatesMissionList),
-    ("DCS server settings patcher creates cfg mission list", DcsServerSettingsPatcherCreatesCfgMissionList),
+    ("DCS server settings patcher refuses settings root", DcsServerSettingsPatcherRefusesSettingsRoot),
     ("DCS config check reports safe mode", DcsConfigCheckReportsSafeMode),
     ("DCS config check allows serverSettings mission list start", DcsConfigCheckAllowsServerSettingsMissionListStart),
     ("DCS config check requires mission source", DcsConfigCheckRequiresMissionSource),
@@ -1000,6 +1000,9 @@ static void TurnAutomationPreparesNextMissionForExpiredTurn()
 
         var environment = new TestEnvironment(root);
         var store = new StateStore(environment);
+        var serverSettingsPath = Path.Combine(root, "Saved Games", "DCS.server", "Config", "serverSettings.lua");
+        Directory.CreateDirectory(Path.GetDirectoryName(serverSettingsPath)!);
+        File.WriteAllText(serverSettingsPath, "cfg = {\n\t[\"listStartIndex\"] = 1,\n\t[\"missionList\"] = \n\t{\n\t\t[1] = \"old.miz\",\n\t}, -- end of [\"missionList\"]\n}");
         var expiredState = WarState.CreateDefault() with
         {
             CampaignId = "automation-test",
@@ -1015,7 +1018,9 @@ static void TurnAutomationPreparesNextMissionForExpiredTurn()
                 ["Launcher:DcsExecutablePath"] = Path.Combine(root, "missing-dcs.exe"),
                 ["Launcher:DefaultMissionPath"] = Path.Combine(root, "missing-default.miz"),
                 ["Launcher:ServerMissionDirectory"] = Path.Combine(root, "ServerMissions"),
-                ["Launcher:DeployedMissionFileName"] = "persistent-war-current.miz"
+                ["Launcher:DeployedMissionFileName"] = "persistent-war-current.miz",
+                ["Launcher:ServerSettingsPath"] = serverSettingsPath,
+                ["Launcher:PatchServerSettings"] = "true"
             })
             .Build();
         var dcs = new DcsProcessService(configuration, NullLogger<DcsProcessService>.Instance);
@@ -1114,7 +1119,7 @@ static void MissionDeploymentReplacesOldTurnMissions()
         Directory.CreateDirectory(serverMissionDirectory);
         Directory.CreateDirectory(Path.GetDirectoryName(serverSettingsPath)!);
         File.WriteAllText(sourcePath, "new miz");
-        File.WriteAllText(serverSettingsPath, "settings = {\n\t[\"missionList\"] = \n\t{\n\t\t[1] = \"old.miz\",\n\t}, -- end of [\"missionList\"]\n}");
+        File.WriteAllText(serverSettingsPath, "cfg = {\n\t[\"listStartIndex\"] = 1,\n\t[\"missionList\"] = \n\t{\n\t\t[1] = \"old.miz\",\n\t}, -- end of [\"missionList\"]\n}");
         File.WriteAllText(Path.Combine(serverMissionDirectory, "campaign-old-turn-0001.miz"), "old");
         File.WriteAllText(Path.Combine(serverMissionDirectory, "war-launcher-turn-0001.miz"), "old");
         File.WriteAllText(Path.Combine(serverMissionDirectory, "keep-user-mission.miz"), "keep");
@@ -1153,7 +1158,7 @@ static void MissionDeploymentReplacesOldTurnMissions()
 static void DcsServerSettingsPatcherUpdatesMissionList()
 {
     var patched = DcsServerSettingsPatcher.PatchMissionList(
-        "settings = {\n\t[\"name\"] = \"Test\",\n\t[\"missionList\"] = \n\t{\n\t\t[1] = \"old.miz\",\n\t}, -- end of [\"missionList\"]\n}",
+        "cfg = {\n\t[\"name\"] = \"Test\",\n\t[\"listStartIndex\"] = 3,\n\t[\"missionList\"] = \n\t{\n\t\t[1] = \"old.miz\",\n\t}, -- end of [\"missionList\"]\n}",
         @"C:\DCS\Missions\persistent-war-current.miz");
 
     Assert.True(patched.StartsWith("cfg = ", StringComparison.Ordinal), "Expected DCS cfg root.");
@@ -1166,16 +1171,12 @@ static void DcsServerSettingsPatcherUpdatesMissionList()
     Assert.Equal(@"C:\DCS\Missions\persistent-war-current.miz", inspection.MissionPath);
 }
 
-static void DcsServerSettingsPatcherCreatesCfgMissionList()
+static void DcsServerSettingsPatcherRefusesSettingsRoot()
 {
-    var patched = DcsServerSettingsPatcher.PatchMissionList(
-        "settings = {}",
-        @"C:\DCS\Missions\persistent-war-current.miz");
-
-    Assert.True(patched.StartsWith("cfg = ", StringComparison.Ordinal), "Expected DCS cfg root.");
-    Assert.True(patched.Contains("[\"listStartIndex\"] = 1", StringComparison.Ordinal), "Expected listStartIndex to be inserted.");
-    Assert.True(patched.Contains("[\"missionList\"]", StringComparison.Ordinal), "Expected missionList to be inserted.");
-    Assert.True(patched.Contains(@"C:\\DCS\\Missions\\persistent-war-current.miz", StringComparison.Ordinal), "Expected escaped deployed mission path.");
+    Assert.Throws<InvalidOperationException>(() =>
+        DcsServerSettingsPatcher.PatchMissionList(
+            "settings = {}",
+            @"C:\DCS\Missions\persistent-war-current.miz"));
 }
 
 static void DcsConfigCheckReportsSafeMode()
@@ -1412,6 +1413,21 @@ static class Assert
         {
             throw new InvalidOperationException(message);
         }
+    }
+
+    public static void Throws<TException>(Action action)
+        where TException : Exception
+    {
+        try
+        {
+            action();
+        }
+        catch (TException)
+        {
+            return;
+        }
+
+        throw new InvalidOperationException($"Expected exception {typeof(TException).Name}.");
     }
 }
 
