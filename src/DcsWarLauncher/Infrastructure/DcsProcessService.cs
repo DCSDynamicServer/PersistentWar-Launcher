@@ -119,6 +119,11 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
         var mode = schedulerEnabled
             ? autoStartServer ? "Live automation" : "Safe automation"
             : "Manual";
+        var missionStartMode = startArgumentsContainMissionPlaceholder
+            ? "Mission argument"
+            : canUseServerSettingsMissionList
+                ? "serverSettings.lua"
+                : "Not configured";
 
         return new DcsConfigCheck(
             isReady,
@@ -140,6 +145,11 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
             autoStopServer,
             autoStartServer,
             advanceWhenTurnExpired,
+            missionStartMode,
+            exePath,
+            missionPath,
+            startArguments,
+            serverSettingsPath,
             mode,
             warnings,
             DateTimeOffset.UtcNow);

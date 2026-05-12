@@ -1128,6 +1128,7 @@ static void DcsConfigCheckReportsSafeMode()
         Assert.True(check.ServerSettingsExists, "Expected serverSettings.lua to exist.");
         Assert.True(check.PatchServerSettings, "Expected serverSettings patching to be active.");
         Assert.True(check.RemoteTokenConfigured, "Expected remote token to be configured.");
+        Assert.Equal("Mission argument", check.MissionStartMode);
         Assert.Equal("Safe automation", check.Mode);
         Assert.True(!check.AutoStartServer, "Expected AutoStart to remain off.");
     }
@@ -1172,6 +1173,8 @@ static void DcsConfigCheckAllowsServerSettingsMissionListStart()
         Assert.True(!check.StartArgumentsContainMissionPlaceholder, "Expected start arguments to omit mission placeholder.");
         Assert.True(check.ServerSettingsConfigured, "Expected serverSettings.lua to be configured.");
         Assert.True(check.PatchServerSettings, "Expected serverSettings patching to be active.");
+        Assert.Equal("serverSettings.lua", check.MissionStartMode);
+        Assert.Equal(serverSettingsPath, check.ServerSettingsPath);
         Assert.True(!check.Warnings.Any(warning => warning.Contains("{mission}", StringComparison.Ordinal)), "Expected no mission placeholder warning.");
     }
     finally
@@ -1207,6 +1210,7 @@ static void DcsConfigCheckRequiresMissionSource()
         var check = new DcsProcessService(configuration, NullLogger<DcsProcessService>.Instance).GetConfigCheck();
 
         Assert.True(!check.IsReady, "Expected config to require either {mission} or serverSettings patching.");
+        Assert.Equal("Not configured", check.MissionStartMode);
         Assert.True(check.Warnings.Any(warning => warning.Contains("{mission}", StringComparison.Ordinal)), "Expected mission source warning.");
     }
     finally

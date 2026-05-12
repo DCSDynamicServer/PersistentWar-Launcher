@@ -48,6 +48,11 @@ public sealed record DcsConfigCheck(
     bool AutoStopServer,
     bool AutoStartServer,
     bool AdvanceWhenTurnExpired,
+    string MissionStartMode,
+    string DcsExecutablePath,
+    string DefaultMissionPath,
+    string StartArguments,
+    string ServerSettingsPath,
     string Mode,
     IReadOnlyCollection<string> Warnings,
     DateTimeOffset CheckedUtc);

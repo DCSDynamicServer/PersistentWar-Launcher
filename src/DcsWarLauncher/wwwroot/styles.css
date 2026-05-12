@@ -327,6 +327,16 @@ button.wide {
   gap: 10px;
 }
 
+.config-check .config-path {
+  grid-column: span 3;
+}
+
+.config-path strong {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .config-warnings {
   display: grid;
   gap: 8px;

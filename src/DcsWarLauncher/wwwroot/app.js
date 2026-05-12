@@ -23,6 +23,7 @@ const els = {
   runAutomationOnceBtn: document.querySelector("#runAutomationOnceBtn"),
   configReady: document.querySelector("#configReady"),
   configMode: document.querySelector("#configMode"),
+  configStartMode: document.querySelector("#configStartMode"),
   configDcsExe: document.querySelector("#configDcsExe"),
   configDefaultMission: document.querySelector("#configDefaultMission"),
   configToken: document.querySelector("#configToken"),
@@ -32,6 +33,9 @@ const els = {
   configCleanup: document.querySelector("#configCleanup"),
   configServerSettings: document.querySelector("#configServerSettings"),
   configMissionListPatch: document.querySelector("#configMissionListPatch"),
+  configDcsExePath: document.querySelector("#configDcsExePath"),
+  configDeployPath: document.querySelector("#configDeployPath"),
+  configServerSettingsPath: document.querySelector("#configServerSettingsPath"),
   configWarnings: document.querySelector("#configWarnings"),
   campaignName: document.querySelector("#campaignName"),
   campaignCreated: document.querySelector("#campaignCreated"),
@@ -136,6 +140,7 @@ async function loadConfigCheck() {
     els.configReady.textContent = "Fehler";
     els.configReady.className = "bad-text";
     els.configMode.textContent = "-";
+    els.configStartMode.textContent = "-";
     els.configWarnings.innerHTML = "";
     return;
   }
@@ -143,6 +148,10 @@ async function loadConfigCheck() {
   els.configReady.textContent = config.isReady ? "Bereit" : "Pruefen";
   els.configReady.className = config.isReady ? "ok-text" : "warn-text";
   els.configMode.textContent = config.mode || "-";
+  els.configStartMode.textContent = config.missionStartMode || "-";
+  els.configStartMode.className = config.missionStartMode === "serverSettings.lua" || config.startArgumentsContainMissionPlaceholder
+    ? "ok-text"
+    : "bad-text";
   els.configDcsExe.textContent = config.dcsExecutableExists ? "OK" : config.dcsExecutableConfigured ? "Fehlt" : "Offen";
   els.configDcsExe.className = config.dcsExecutableExists ? "ok-text" : "bad-text";
   els.configDefaultMission.textContent = config.defaultMissionExists ? "OK" : config.defaultMissionConfigured ? "Fehlt" : "Offen";
@@ -161,6 +170,9 @@ async function loadConfigCheck() {
   els.configServerSettings.className = config.serverSettingsExists ? "ok-text" : config.serverSettingsConfigured ? "warn-text" : "bad-text";
   els.configMissionListPatch.textContent = config.patchServerSettings ? "Aktiv" : "Aus";
   els.configMissionListPatch.className = config.patchServerSettings ? "ok-text" : "warn-text";
+  els.configDcsExePath.textContent = config.dcsExecutablePath || "-";
+  els.configDeployPath.textContent = config.deploymentTargetPath || "-";
+  els.configServerSettingsPath.textContent = config.serverSettingsPath || "-";
 
   els.configWarnings.innerHTML = "";
   for (const warning of config.warnings || []) {
