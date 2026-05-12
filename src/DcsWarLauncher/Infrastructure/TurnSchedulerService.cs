@@ -6,9 +6,7 @@ namespace DcsWarLauncher.Infrastructure;
 
 public sealed class TurnSchedulerService(
     IOptions<SchedulerOptions> options,
-    StateStore store,
-    TurnEngine turnEngine,
-    DcsProcessService dcs,
+    TurnAutomationService automation,
     TurnSchedulerState state,
     ILogger<TurnSchedulerService> logger) : BackgroundService
 {
@@ -42,35 +40,23 @@ public sealed class TurnSchedulerService(
             return;
         }
 
-        var currentState = await store.LoadAsync();
-        if (currentState.CurrentTurnEndsUtc > DateTimeOffset.UtcNow)
+        state.MarkProcessing("Checking turn automation.");
+        var result = await automation.RunExpiredTurnAsync(schedulerOptions, cancellationToken);
+        if (!result.TurnAdvanced)
         {
-            state.MarkIdle($"Waiting for turn {currentState.Turn} to end.");
+            state.MarkIdle(result.Message);
             return;
         }
 
-        state.MarkProcessing($"Advancing expired turn {currentState.Turn}.");
-        logger.LogInformation("Advancing expired turn {Turn}.", currentState.Turn);
+        logger.LogInformation("Automation result for turn {Turn}: {Message}", result.Turn, result.Message);
 
-        if (schedulerOptions.AutoStopServer)
+        if (!result.Success)
         {
-            await dcs.StopIfRunningAsync();
+            state.MarkIdle(result.Message);
+            return;
         }
 
-        var nextState = turnEngine.Advance(currentState, BattleReport.Empty);
-        await store.SaveAsync(nextState);
-
-        if (schedulerOptions.AutoStartServer)
-        {
-            var startResult = await dcs.StartAsync(new StartMissionRequest());
-            if (!startResult.Success)
-            {
-                state.MarkIdle($"Turn {nextState.Turn} created; server not started: {startResult.Message}");
-                return;
-            }
-        }
-
-        state.MarkCompleted($"Turn {nextState.Turn} created.");
+        state.MarkCompleted(result.Message);
     }
 
     private static SchedulerOptions Normalize(SchedulerOptions options) => new()

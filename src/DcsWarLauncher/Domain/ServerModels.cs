@@ -4,7 +4,11 @@ public sealed record LauncherOptions(
     string DcsExecutablePath,
     string DefaultMissionPath,
     string StartArguments,
-    string RemoteToken);
+    string RemoteToken,
+    string? ServerMissionDirectory = null,
+    string? DeployedMissionFileName = null,
+    string? ServerSettingsPath = null,
+    bool CleanupOldTurnMissions = true);
 
 public sealed class SchedulerOptions
 {
@@ -24,6 +28,35 @@ public sealed record DcsStatus(
     string DefaultMissionPath,
     DateTimeOffset CheckedUtc);
 
+public sealed record DcsConfigCheck(
+    bool IsReady,
+    bool DcsExecutableConfigured,
+    bool DcsExecutableExists,
+    bool DefaultMissionConfigured,
+    bool DefaultMissionExists,
+    bool StartArgumentsConfigured,
+    bool StartArgumentsContainMissionPlaceholder,
+    bool RemoteTokenConfigured,
+    bool DeploymentTargetConfigured,
+    bool DeploymentDirectoryExists,
+    string DeploymentTargetPath,
+    bool CleanupOldTurnMissions,
+    bool ServerSettingsConfigured,
+    bool ServerSettingsExists,
+    bool PatchServerSettings,
+    bool SchedulerEnabled,
+    bool AutoStopServer,
+    bool AutoStartServer,
+    bool AdvanceWhenTurnExpired,
+    string MissionStartMode,
+    string DcsExecutablePath,
+    string DefaultMissionPath,
+    string StartArguments,
+    string ServerSettingsPath,
+    string Mode,
+    IReadOnlyCollection<string> Warnings,
+    DateTimeOffset CheckedUtc);
+
 public sealed record ActionResultDto(bool Success, string Message)
 {
     public static ActionResultDto Ok(string message) => new(true, message);
@@ -40,3 +73,19 @@ public sealed record SchedulerStatus(
     DateTimeOffset? LastCheckedUtc,
     DateTimeOffset? LastRunUtc,
     string LastMessage);
+
+public sealed record TurnAutomationResult(
+    bool Success,
+    bool TurnAdvanced,
+    int Turn,
+    string Message,
+    string? MissionPath = null,
+    string? PreparedMissionPath = null,
+    string? MissionResultFileName = null);
+
+public sealed record MissionDeploymentResult(
+    bool Success,
+    string Message,
+    string? MissionPath,
+    int DeletedOldMissions,
+    bool ServerSettingsPatched);

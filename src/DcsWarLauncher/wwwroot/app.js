@@ -20,6 +20,23 @@ const els = {
   schedulerChecked: document.querySelector("#schedulerChecked"),
   schedulerRun: document.querySelector("#schedulerRun"),
   schedulerMessage: document.querySelector("#schedulerMessage"),
+  runAutomationOnceBtn: document.querySelector("#runAutomationOnceBtn"),
+  configReady: document.querySelector("#configReady"),
+  configMode: document.querySelector("#configMode"),
+  configStartMode: document.querySelector("#configStartMode"),
+  configDcsExe: document.querySelector("#configDcsExe"),
+  configDefaultMission: document.querySelector("#configDefaultMission"),
+  configToken: document.querySelector("#configToken"),
+  configAutoStart: document.querySelector("#configAutoStart"),
+  configDeployTarget: document.querySelector("#configDeployTarget"),
+  configDeployDirectory: document.querySelector("#configDeployDirectory"),
+  configCleanup: document.querySelector("#configCleanup"),
+  configServerSettings: document.querySelector("#configServerSettings"),
+  configMissionListPatch: document.querySelector("#configMissionListPatch"),
+  configDcsExePath: document.querySelector("#configDcsExePath"),
+  configDeployPath: document.querySelector("#configDeployPath"),
+  configServerSettingsPath: document.querySelector("#configServerSettingsPath"),
+  configWarnings: document.querySelector("#configWarnings"),
   campaignName: document.querySelector("#campaignName"),
   campaignCreated: document.querySelector("#campaignCreated"),
   theater: document.querySelector("#theater"),
@@ -55,6 +72,9 @@ const els = {
   templateBlueSlots: document.querySelector("#templateBlueSlots"),
   templateRedSlots: document.querySelector("#templateRedSlots"),
   templateAnchorCount: document.querySelector("#templateAnchorCount"),
+  templateDirectory: document.querySelector("#templateDirectory"),
+  templatePath: document.querySelector("#templatePath"),
+  templateDirectoryFiles: document.querySelector("#templateDirectoryFiles"),
   templateWarnings: document.querySelector("#templateWarnings"),
   templateAnchors: document.querySelector("#templateAnchors"),
   templateGroups: document.querySelector("#templateGroups"),
@@ -114,6 +134,55 @@ async function loadScheduler() {
     ? new Date(scheduler.lastRunUtc).toLocaleString()
     : "-";
   els.schedulerMessage.textContent = scheduler.lastMessage;
+}
+
+async function loadConfigCheck() {
+  const response = await fetch("/api/server/config-check");
+  const config = await response.json().catch(() => null);
+  if (!response.ok || !config) {
+    els.configReady.textContent = "Fehler";
+    els.configReady.className = "bad-text";
+    els.configMode.textContent = "-";
+    els.configStartMode.textContent = "-";
+    els.configWarnings.innerHTML = "";
+    return;
+  }
+
+  els.configReady.textContent = config.isReady ? "Bereit" : "Pruefen";
+  els.configReady.className = config.isReady ? "ok-text" : "warn-text";
+  els.configMode.textContent = config.mode || "-";
+  els.configStartMode.textContent = config.missionStartMode || "-";
+  els.configStartMode.className = config.missionStartMode === "serverSettings.lua" || config.startArgumentsContainMissionPlaceholder
+    ? "ok-text"
+    : "bad-text";
+  els.configDcsExe.textContent = config.dcsExecutableExists ? "OK" : config.dcsExecutableConfigured ? "Fehlt" : "Offen";
+  els.configDcsExe.className = config.dcsExecutableExists ? "ok-text" : "bad-text";
+  els.configDefaultMission.textContent = config.defaultMissionExists ? "OK" : config.defaultMissionConfigured ? "Fehlt" : "Offen";
+  els.configDefaultMission.className = config.defaultMissionExists ? "ok-text" : "bad-text";
+  els.configToken.textContent = config.remoteTokenConfigured ? "Gesetzt" : "Offen";
+  els.configToken.className = config.remoteTokenConfigured ? "ok-text" : "bad-text";
+  els.configAutoStart.textContent = config.autoStartServer ? "Aktiv" : "Aus";
+  els.configAutoStart.className = config.autoStartServer ? "warn-text" : "ok-text";
+  els.configDeployTarget.textContent = config.deploymentTargetConfigured ? "Gesetzt" : "Offen";
+  els.configDeployTarget.className = config.deploymentTargetConfigured ? "ok-text" : "bad-text";
+  els.configDeployDirectory.textContent = config.deploymentDirectoryExists ? "OK" : "Fehlt";
+  els.configDeployDirectory.className = config.deploymentDirectoryExists ? "ok-text" : "warn-text";
+  els.configCleanup.textContent = config.cleanupOldTurnMissions ? "Aktiv" : "Aus";
+  els.configCleanup.className = config.cleanupOldTurnMissions ? "ok-text" : "warn-text";
+  els.configServerSettings.textContent = config.serverSettingsExists ? "OK" : config.serverSettingsConfigured ? "Wird erstellt" : "Offen";
+  els.configServerSettings.className = config.serverSettingsExists ? "ok-text" : config.serverSettingsConfigured ? "warn-text" : "bad-text";
+  els.configMissionListPatch.textContent = config.patchServerSettings ? "Aktiv" : "Aus";
+  els.configMissionListPatch.className = config.patchServerSettings ? "ok-text" : "warn-text";
+  els.configDcsExePath.textContent = config.dcsExecutablePath || "-";
+  els.configDeployPath.textContent = config.deploymentTargetPath || "-";
+  els.configServerSettingsPath.textContent = config.serverSettingsPath || "-";
+
+  els.configWarnings.innerHTML = "";
+  for (const warning of config.warnings || []) {
+    const item = document.createElement("p");
+    item.textContent = warning;
+    els.configWarnings.appendChild(item);
+  }
 }
 
 async function loadGeneratedMission() {
@@ -281,6 +350,10 @@ function renderTemplateInspection(template) {
   els.templateBlueSlots.textContent = blueSlots;
   els.templateRedSlots.textContent = redSlots;
   els.templateAnchorCount.textContent = anchors.length;
+  els.templateDirectory.textContent = template.templateDirectoryExists ? "OK" : "Fehlt";
+  els.templateDirectory.className = template.templateDirectoryExists ? "ok-text" : "bad-text";
+  els.templatePath.textContent = template.filePath || "-";
+  els.templateDirectoryFiles.textContent = (template.templateDirectoryFiles || []).join(", ") || "-";
 
   els.templateWarnings.innerHTML = "";
   for (const warning of template.warnings || []) {
@@ -581,6 +654,31 @@ async function stopServer() {
   await loadStatus();
 }
 
+async function runAutomationOnce() {
+  const confirmed = window.confirm("Automation einmal ausfuehren? Wenn der Turn abgelaufen ist, kann ein neuer Campaign-State und eine neue Turn-MIZ erzeugt werden.");
+  if (!confirmed) {
+    return;
+  }
+
+  els.schedulerMessage.textContent = "Automation laeuft einmal...";
+  const response = await fetch("/api/scheduler/run-once", {
+    method: "POST",
+    headers: authHeaders()
+  });
+
+  const result = await response.json().catch(() => ({ message: "Unauthorized oder ungueltige Antwort." }));
+  els.schedulerMessage.textContent = result.message || "Automation abgeschlossen.";
+  if (!response.ok) {
+    return;
+  }
+
+  await loadState();
+  await loadGeneratedMission();
+  await loadScheduler();
+  await loadConfigCheck();
+  await loadReadiness();
+}
+
 async function saveState() {
   currentState.blueSupply = Number(els.blueSupply.value);
   currentState.redSupply = Number(els.redSupply.value);
@@ -849,6 +947,7 @@ async function prepareMission() {
 
 els.startBtn.addEventListener("click", startServer);
 els.stopBtn.addEventListener("click", stopServer);
+els.runAutomationOnceBtn.addEventListener("click", runAutomationOnce);
 els.useGeneratedMissionBtn.addEventListener("click", useGeneratedMission);
 els.importMissionResultBtn.addEventListener("click", importMissionResult);
 els.advanceFromResultBtn.addEventListener("click", advanceTurnFromResult);
@@ -867,6 +966,7 @@ for (const button of els.tabButtons) {
 els.refreshBtn.addEventListener("click", async () => {
   await loadStatus();
   await loadScheduler();
+  await loadConfigCheck();
   await loadGeneratedMission();
   await loadMissionResultStatus();
   await loadReadiness();
@@ -876,6 +976,7 @@ els.refreshBtn.addEventListener("click", async () => {
 
 loadStatus();
 loadScheduler();
+loadConfigCheck();
 loadGeneratedMission();
 loadMissionResultStatus();
 loadReadiness();
@@ -883,4 +984,5 @@ loadState();
 loadTemplateInspection();
 setInterval(loadStatus, 5000);
 setInterval(loadScheduler, 10000);
+setInterval(loadConfigCheck, 30000);
 setInterval(updateRemaining, 30000);
