@@ -1160,6 +1160,10 @@ static void DcsServerSettingsPatcherUpdatesMissionList()
     Assert.True(patched.Contains("[\"listStartIndex\"] = 1", StringComparison.Ordinal), "Expected listStartIndex to be set.");
     Assert.True(patched.Contains(@"C:\\DCS\\Missions\\persistent-war-current.miz", StringComparison.Ordinal), "Expected escaped deployed mission path.");
     Assert.True(!patched.Contains("old.miz", StringComparison.Ordinal), "Expected old mission path to be replaced.");
+    var inspection = DcsServerSettingsPatcher.Inspect(patched);
+    Assert.Equal("cfg", inspection.Root);
+    Assert.True(inspection.HasListStartIndex, "Expected listStartIndex inspection.");
+    Assert.Equal(@"C:\DCS\Missions\persistent-war-current.miz", inspection.MissionPath);
 }
 
 static void DcsServerSettingsPatcherCreatesCfgMissionList()

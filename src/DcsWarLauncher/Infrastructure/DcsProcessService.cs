@@ -54,6 +54,11 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
         var serverSettingsConfigured = !string.IsNullOrWhiteSpace(serverSettingsPath);
         var serverSettingsExists = serverSettingsConfigured && File.Exists(serverSettingsPath);
         var canUseServerSettingsMissionList = patchServerSettings && serverSettingsConfigured;
+        var serverSettingsInspection = serverSettingsExists
+            ? DcsServerSettingsPatcher.Inspect(File.ReadAllText(serverSettingsPath))
+            : new DcsServerSettingsInspection("", false, null);
+        var serverSettingsMissionExists = !string.IsNullOrWhiteSpace(serverSettingsInspection.MissionPath) &&
+            File.Exists(serverSettingsInspection.MissionPath);
 
         if (!dcsExecutableConfigured)
         {
@@ -104,6 +109,18 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
         {
             warnings.Add("serverSettings.lua does not exist yet; it will be created when deploying.");
         }
+        else if (patchServerSettings && serverSettingsInspection.Root == "settings")
+        {
+            warnings.Add("serverSettings.lua uses settings root instead of DCS cfg root. Run automation deploy again.");
+        }
+        else if (patchServerSettings && serverSettingsExists && string.IsNullOrWhiteSpace(serverSettingsInspection.MissionPath))
+        {
+            warnings.Add("serverSettings.lua does not contain missionList[1]. Run automation deploy again.");
+        }
+        else if (patchServerSettings && !serverSettingsMissionExists)
+        {
+            warnings.Add("serverSettings.lua missionList[1] target does not exist.");
+        }
 
         if (schedulerEnabled && autoStartServer)
         {
@@ -150,6 +167,10 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
             missionPath,
             startArguments,
             serverSettingsPath,
+            serverSettingsInspection.Root,
+            serverSettingsInspection.HasListStartIndex,
+            serverSettingsInspection.MissionPath,
+            serverSettingsMissionExists,
             mode,
             warnings,
             DateTimeOffset.UtcNow);

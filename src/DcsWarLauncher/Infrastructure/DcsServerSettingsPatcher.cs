@@ -4,6 +4,27 @@ namespace DcsWarLauncher.Infrastructure;
 
 public static class DcsServerSettingsPatcher
 {
+    public static DcsServerSettingsInspection Inspect(string serverSettingsText)
+    {
+        var root = Regex.IsMatch(serverSettingsText, @"\bcfg\s*=", RegexOptions.Singleline)
+            ? "cfg"
+            : Regex.IsMatch(serverSettingsText, @"\bsettings\s*=", RegexOptions.Singleline)
+                ? "settings"
+                : "";
+        var hasListStartIndex = Regex.IsMatch(serverSettingsText, @"\[""listStartIndex""\]\s*=\s*\d+", RegexOptions.Singleline);
+        var missionMatch = Regex.Match(
+            serverSettingsText,
+            @"\[""missionList""\]\s*=\s*\{.*?\[1\]\s*=\s*""(?<path>(?:\\.|[^""])*)""",
+            RegexOptions.Singleline);
+        var missionPath = missionMatch.Success
+            ? missionMatch.Groups["path"].Value
+                .Replace("\\\\", "\\", StringComparison.Ordinal)
+                .Replace("\\\"", "\"", StringComparison.Ordinal)
+            : null;
+
+        return new DcsServerSettingsInspection(root, hasListStartIndex, missionPath);
+    }
+
     public static string PatchMissionList(string serverSettingsText, string missionPath)
     {
         var normalized = NormalizeRoot(serverSettingsText);
@@ -63,3 +84,8 @@ public static class DcsServerSettingsPatcher
             "\t}, -- end of [\"missionList\"]");
     }
 }
+
+public sealed record DcsServerSettingsInspection(
+    string Root,
+    bool HasListStartIndex,
+    string? MissionPath);

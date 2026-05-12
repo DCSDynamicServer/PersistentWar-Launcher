@@ -53,6 +53,10 @@ public sealed record DcsConfigCheck(
     string DefaultMissionPath,
     string StartArguments,
     string ServerSettingsPath,
+    string ServerSettingsRoot,
+    bool ServerSettingsHasListStartIndex,
+    string? ServerSettingsMissionPath,
+    bool ServerSettingsMissionExists,
     string Mode,
     IReadOnlyCollection<string> Warnings,
     DateTimeOffset CheckedUtc);

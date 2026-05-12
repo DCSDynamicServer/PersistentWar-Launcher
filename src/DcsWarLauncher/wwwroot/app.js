@@ -33,6 +33,9 @@ const els = {
   configCleanup: document.querySelector("#configCleanup"),
   configServerSettings: document.querySelector("#configServerSettings"),
   configMissionListPatch: document.querySelector("#configMissionListPatch"),
+  configSettingsRoot: document.querySelector("#configSettingsRoot"),
+  configListStart: document.querySelector("#configListStart"),
+  configMissionListTarget: document.querySelector("#configMissionListTarget"),
   configDcsExePath: document.querySelector("#configDcsExePath"),
   configDeployPath: document.querySelector("#configDeployPath"),
   configServerSettingsPath: document.querySelector("#configServerSettingsPath"),
@@ -173,6 +176,12 @@ async function loadConfigCheck() {
   els.configServerSettings.className = config.serverSettingsExists ? "ok-text" : config.serverSettingsConfigured ? "warn-text" : "bad-text";
   els.configMissionListPatch.textContent = config.patchServerSettings ? "Aktiv" : "Aus";
   els.configMissionListPatch.className = config.patchServerSettings ? "ok-text" : "warn-text";
+  els.configSettingsRoot.textContent = config.serverSettingsRoot || "-";
+  els.configSettingsRoot.className = config.serverSettingsRoot === "cfg" ? "ok-text" : "warn-text";
+  els.configListStart.textContent = config.serverSettingsHasListStartIndex ? "OK" : "Fehlt";
+  els.configListStart.className = config.serverSettingsHasListStartIndex ? "ok-text" : "warn-text";
+  els.configMissionListTarget.textContent = config.serverSettingsMissionExists ? "OK" : config.serverSettingsMissionPath ? "Fehlt" : "Offen";
+  els.configMissionListTarget.className = config.serverSettingsMissionExists ? "ok-text" : config.serverSettingsMissionPath ? "bad-text" : "warn-text";
   els.configDcsExePath.textContent = config.dcsExecutablePath || "-";
   els.configDeployPath.textContent = config.deploymentTargetPath || "-";
   els.configServerSettingsPath.textContent = config.serverSettingsPath || "-";
