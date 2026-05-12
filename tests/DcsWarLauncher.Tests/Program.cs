@@ -51,6 +51,7 @@ var tests = new (string Name, Action Test)[]
     ("Turn automation blocks invalid mission result", TurnAutomationBlocksInvalidMissionResult),
     ("Mission deployment replaces old turn missions", MissionDeploymentReplacesOldTurnMissions),
     ("DCS server settings patcher updates mission list", DcsServerSettingsPatcherUpdatesMissionList),
+    ("DCS server settings patcher creates cfg mission list", DcsServerSettingsPatcherCreatesCfgMissionList),
     ("DCS config check reports safe mode", DcsConfigCheckReportsSafeMode),
     ("DCS config check allows serverSettings mission list start", DcsConfigCheckAllowsServerSettingsMissionListStart),
     ("DCS config check requires mission source", DcsConfigCheckRequiresMissionSource),
@@ -1155,8 +1156,22 @@ static void DcsServerSettingsPatcherUpdatesMissionList()
         "settings = {\n\t[\"name\"] = \"Test\",\n\t[\"missionList\"] = \n\t{\n\t\t[1] = \"old.miz\",\n\t}, -- end of [\"missionList\"]\n}",
         @"C:\DCS\Missions\persistent-war-current.miz");
 
+    Assert.True(patched.StartsWith("cfg = ", StringComparison.Ordinal), "Expected DCS cfg root.");
+    Assert.True(patched.Contains("[\"listStartIndex\"] = 1", StringComparison.Ordinal), "Expected listStartIndex to be set.");
     Assert.True(patched.Contains(@"C:\\DCS\\Missions\\persistent-war-current.miz", StringComparison.Ordinal), "Expected escaped deployed mission path.");
     Assert.True(!patched.Contains("old.miz", StringComparison.Ordinal), "Expected old mission path to be replaced.");
+}
+
+static void DcsServerSettingsPatcherCreatesCfgMissionList()
+{
+    var patched = DcsServerSettingsPatcher.PatchMissionList(
+        "settings = {}",
+        @"C:\DCS\Missions\persistent-war-current.miz");
+
+    Assert.True(patched.StartsWith("cfg = ", StringComparison.Ordinal), "Expected DCS cfg root.");
+    Assert.True(patched.Contains("[\"listStartIndex\"] = 1", StringComparison.Ordinal), "Expected listStartIndex to be inserted.");
+    Assert.True(patched.Contains("[\"missionList\"]", StringComparison.Ordinal), "Expected missionList to be inserted.");
+    Assert.True(patched.Contains(@"C:\\DCS\\Missions\\persistent-war-current.miz", StringComparison.Ordinal), "Expected escaped deployed mission path.");
 }
 
 static void DcsConfigCheckReportsSafeMode()
