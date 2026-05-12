@@ -7,6 +7,7 @@ const els = {
   generatedMissionName: document.querySelector("#generatedMissionName"),
   generatedMissionMeta: document.querySelector("#generatedMissionMeta"),
   useGeneratedMissionBtn: document.querySelector("#useGeneratedMissionBtn"),
+  deployGeneratedMissionBtn: document.querySelector("#deployGeneratedMissionBtn"),
   missionResultName: document.querySelector("#missionResultName"),
   missionResultMeta: document.querySelector("#missionResultMeta"),
   importMissionResultBtn: document.querySelector("#importMissionResultBtn"),
@@ -202,6 +203,7 @@ async function loadGeneratedMission() {
     els.generatedMissionName.textContent = "Keine vorbereitet";
     els.generatedMissionMeta.textContent = "-";
     els.useGeneratedMissionBtn.disabled = true;
+    els.deployGeneratedMissionBtn.disabled = true;
     return;
   }
 
@@ -215,6 +217,7 @@ async function loadGeneratedMission() {
   els.generatedMissionName.textContent = latestGeneratedMission.mizFileName;
   els.generatedMissionMeta.textContent = `${sizeKb} - ${modified}`;
   els.useGeneratedMissionBtn.disabled = false;
+  els.deployGeneratedMissionBtn.disabled = false;
 }
 
 async function loadMissionResultStatus() {
@@ -307,6 +310,30 @@ function useGeneratedMission() {
 
   els.missionPath.value = latestGeneratedMission.mizFilePath;
   els.actionMessage.textContent = "Letzte Turn-MIZ als Startmission uebernommen.";
+}
+
+async function deployGeneratedMission() {
+  if (!latestGeneratedMission?.exists) {
+    els.actionMessage.textContent = "Keine vorbereitete Turn-MIZ gefunden.";
+    return;
+  }
+
+  els.actionMessage.textContent = "Deploye letzte Turn-MIZ...";
+  const response = await fetch("/api/mission/generated/deploy-latest", {
+    method: "POST",
+    headers: authHeaders()
+  });
+
+  const result = await response.json().catch(() => ({ message: "Unauthorized oder ungueltige Antwort.", error: null }));
+  if (!response.ok) {
+    els.actionMessage.textContent = result.error || result.message || "Turn-MIZ konnte nicht deployed werden.";
+    await loadConfigCheck();
+    return;
+  }
+
+  els.actionMessage.textContent = result.message || "Letzte Turn-MIZ deployed.";
+  await loadGeneratedMission();
+  await loadConfigCheck();
 }
 
 async function loadState() {
@@ -958,6 +985,7 @@ els.startBtn.addEventListener("click", startServer);
 els.stopBtn.addEventListener("click", stopServer);
 els.runAutomationOnceBtn.addEventListener("click", runAutomationOnce);
 els.useGeneratedMissionBtn.addEventListener("click", useGeneratedMission);
+els.deployGeneratedMissionBtn.addEventListener("click", deployGeneratedMission);
 els.importMissionResultBtn.addEventListener("click", importMissionResult);
 els.advanceFromResultBtn.addEventListener("click", advanceTurnFromResult);
 els.advanceTurnBtn.addEventListener("click", advanceTurn);

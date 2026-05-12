@@ -206,6 +206,28 @@ app.MapGet("/api/mission/generated/latest", (MissionPlanExporter exporter) =>
     return Results.Ok(result);
 });
 
+app.MapPost("/api/mission/generated/deploy-latest", async (
+    HttpContext context,
+    MissionPlanExporter exporter,
+    MissionDeploymentService deployment) =>
+{
+    if (!IsAuthorized(context, app.Configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    var latest = exporter.GetLatestGeneratedMission();
+    if (!latest.Exists ||
+        string.IsNullOrWhiteSpace(latest.MizFilePath) ||
+        string.IsNullOrWhiteSpace(latest.MizFileName))
+    {
+        return Results.BadRequest(new { error = "No prepared Turn-MIZ found." });
+    }
+
+    var result = await deployment.DeployAsync(latest.MizFilePath, latest.MizFileName);
+    return result.Success ? Results.Ok(result) : Results.BadRequest(result);
+});
+
 app.MapGet("/api/mission/results/latest", (MissionResultImporter importer) =>
 {
     var result = importer.GetLatestResultStatus();
