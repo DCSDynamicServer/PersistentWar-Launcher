@@ -72,7 +72,9 @@ const els = {
   templateBlueSlots: document.querySelector("#templateBlueSlots"),
   templateRedSlots: document.querySelector("#templateRedSlots"),
   templateAnchorCount: document.querySelector("#templateAnchorCount"),
+  templateDirectory: document.querySelector("#templateDirectory"),
   templatePath: document.querySelector("#templatePath"),
+  templateDirectoryFiles: document.querySelector("#templateDirectoryFiles"),
   templateWarnings: document.querySelector("#templateWarnings"),
   templateAnchors: document.querySelector("#templateAnchors"),
   templateGroups: document.querySelector("#templateGroups"),
@@ -348,7 +350,10 @@ function renderTemplateInspection(template) {
   els.templateBlueSlots.textContent = blueSlots;
   els.templateRedSlots.textContent = redSlots;
   els.templateAnchorCount.textContent = anchors.length;
+  els.templateDirectory.textContent = template.templateDirectoryExists ? "OK" : "Fehlt";
+  els.templateDirectory.className = template.templateDirectoryExists ? "ok-text" : "bad-text";
   els.templatePath.textContent = template.filePath || "-";
+  els.templateDirectoryFiles.textContent = (template.templateDirectoryFiles || []).join(", ") || "-";
 
   els.templateWarnings.innerHTML = "";
   for (const warning of template.warnings || []) {

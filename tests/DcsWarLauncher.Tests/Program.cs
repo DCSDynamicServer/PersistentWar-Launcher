@@ -902,6 +902,7 @@ static void MissionTemplateInspectorReportsMissingTemplate()
 
         Assert.True(!result.IsReadable, "Expected missing template to be unreadable.");
         Assert.Equal(0, result.ClientSlotCount);
+        Assert.True(!result.TemplateDirectoryExists, "Expected missing template directory to be reported.");
         Assert.True(result.Warnings.Any(warning => warning.Contains("No .miz template", StringComparison.Ordinal)), "Expected missing template warning.");
     }
     finally
@@ -1231,6 +1232,8 @@ static void MissionTemplateInspectorReportsWlAnchors()
 
         var result = inspector.InspectLatest();
 
+        Assert.True(result.TemplateDirectoryExists, "Expected template directory to exist.");
+        Assert.True(result.TemplateDirectoryFiles.Contains("template-test.miz"), "Expected template file to be listed.");
         Assert.True(result.Anchors.Any(anchor => anchor.Name == "WL_OBJ_KUTAISI_BLUE"), "Expected WL objective anchor.");
         var anchor = result.Anchors.First(candidate => candidate.Name == "WL_OBJ_KUTAISI_BLUE");
         Assert.Equal("trigger-zone", anchor.Kind);

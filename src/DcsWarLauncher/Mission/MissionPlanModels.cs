@@ -155,7 +155,9 @@ public sealed record MissionTemplateInspection(
     IReadOnlyCollection<string> MissingFiles,
     IReadOnlyCollection<ClientGroupInspection> ClientGroups,
     IReadOnlyCollection<TemplateAnchorInspection> Anchors,
-    IReadOnlyCollection<string> Warnings)
+    IReadOnlyCollection<string> Warnings,
+    bool TemplateDirectoryExists,
+    IReadOnlyCollection<string> TemplateDirectoryFiles)
 {
     public int ClientSlotCount => ClientGroups.Sum(group => group.ClientUnits);
 }

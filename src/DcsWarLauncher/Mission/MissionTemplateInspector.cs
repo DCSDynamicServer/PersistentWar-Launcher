@@ -11,6 +11,10 @@ public sealed partial class MissionTemplateInspector(IWebHostEnvironment environ
 
     public MissionTemplateInspection InspectLatest()
     {
+        var directoryExists = Directory.Exists(_templatePath);
+        var directoryFiles = directoryExists
+            ? GetDirectoryFileNames(_templatePath)
+            : [];
         var template = Directory.Exists(_templatePath)
             ? Directory.GetFiles(_templatePath, "*.miz")
                 .Select(path => new FileInfo(path))
@@ -19,11 +23,32 @@ public sealed partial class MissionTemplateInspector(IWebHostEnvironment environ
             : null;
 
         return template is null
-            ? new MissionTemplateInspection("", _templatePath, false, "", RequiredFiles, [], [], ["No .miz template found."])
-            : Inspect(template.FullName);
+            ? new MissionTemplateInspection(
+                "",
+                _templatePath,
+                false,
+                "",
+                RequiredFiles,
+                [],
+                [],
+                BuildMissingTemplateWarnings(directoryExists, directoryFiles),
+                directoryExists,
+                directoryFiles)
+            : Inspect(template.FullName, directoryExists, directoryFiles);
     }
 
-    public MissionTemplateInspection Inspect(string path)
+    public MissionTemplateInspection Inspect(string path) =>
+        Inspect(
+            path,
+            Directory.Exists(Path.GetDirectoryName(path)),
+            Directory.Exists(Path.GetDirectoryName(path))
+                ? GetDirectoryFileNames(Path.GetDirectoryName(path)!)
+                : []);
+
+    private MissionTemplateInspection Inspect(
+        string path,
+        bool templateDirectoryExists,
+        IReadOnlyCollection<string> templateDirectoryFiles)
     {
         var warnings = new List<string>();
         try
@@ -58,7 +83,9 @@ public sealed partial class MissionTemplateInspector(IWebHostEnvironment environ
                 missingFiles,
                 clientGroups,
                 anchors,
-                warnings);
+                warnings,
+                templateDirectoryExists,
+                templateDirectoryFiles);
         }
         catch (InvalidDataException)
         {
@@ -70,9 +97,40 @@ public sealed partial class MissionTemplateInspector(IWebHostEnvironment environ
                 RequiredFiles,
                 [],
                 [],
-                ["Template is not a readable .miz/zip file."]);
+                ["Template is not a readable .miz/zip file."],
+                templateDirectoryExists,
+                templateDirectoryFiles);
         }
     }
+
+    private static IReadOnlyCollection<string> BuildMissingTemplateWarnings(
+        bool directoryExists,
+        IReadOnlyCollection<string> directoryFiles)
+    {
+        if (!directoryExists)
+        {
+            return ["Template directory does not exist.", "No .miz template found."];
+        }
+
+        if (directoryFiles.Count == 0)
+        {
+            return ["Template directory is empty.", "No .miz template found."];
+        }
+
+        return
+        [
+            "No .miz template found.",
+            $"Files seen in template directory: {string.Join(", ", directoryFiles.Take(8))}"
+        ];
+    }
+
+    private static IReadOnlyCollection<string> GetDirectoryFileNames(string path) =>
+        Directory.GetFiles(path)
+            .Select(Path.GetFileName)
+            .OfType<string>()
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
     private static List<ClientGroupInspection> InspectClientGroups(string mission, List<string> warnings)
     {
