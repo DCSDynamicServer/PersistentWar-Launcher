@@ -14,7 +14,7 @@ public static class DataPathResolver
     {
         var contentData = Path.Combine(environment.ContentRootPath, "Data");
         var contentSourceData = Path.Combine(environment.ContentRootPath, "src", "DcsWarLauncher", "Data");
-        if (Directory.Exists(contentData))
+        if (!IsBuildOutput(environment.ContentRootPath) && Directory.Exists(contentData))
         {
             return contentData;
         }
@@ -32,6 +32,18 @@ public static class DataPathResolver
         var candidates = BuildFallbackDataRoots(environment.ContentRootPath)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+        var dataRootWithTemplate = candidates.FirstOrDefault(HasTemplateMission);
+        if (!string.IsNullOrWhiteSpace(dataRootWithTemplate))
+        {
+            return dataRootWithTemplate;
+        }
+
+        var dataRootWithState = candidates.FirstOrDefault(HasCampaignData);
+        if (!string.IsNullOrWhiteSpace(dataRootWithState))
+        {
+            return dataRootWithState;
+        }
+
         var existing = candidates.FirstOrDefault(Directory.Exists);
         if (!string.IsNullOrWhiteSpace(existing))
         {
@@ -69,6 +81,18 @@ public static class DataPathResolver
             yield return Path.Combine(root, "src", "DcsWarLauncher", "Data");
         }
     }
+
+    private static bool HasTemplateMission(string dataRoot)
+    {
+        var templatePath = Path.Combine(dataRoot, "Templates");
+        return Directory.Exists(templatePath) && Directory.GetFiles(templatePath, "*.miz").Length > 0;
+    }
+
+    private static bool HasCampaignData(string dataRoot) =>
+        File.Exists(Path.Combine(dataRoot, "war-state.json")) ||
+        Directory.Exists(Path.Combine(dataRoot, "Generated")) ||
+        Directory.Exists(Path.Combine(dataRoot, "Exports")) ||
+        Directory.Exists(Path.Combine(dataRoot, "Results"));
 
     private static bool IsBuildOutput(string path)
     {

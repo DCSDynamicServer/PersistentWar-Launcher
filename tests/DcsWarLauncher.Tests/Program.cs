@@ -57,6 +57,7 @@ var tests = new (string Name, Action Test)[]
     ("Mission template inspector reports WL anchors", MissionTemplateInspectorReportsWlAnchors),
     ("Mission template inspector finds source data from repo root", MissionTemplateInspectorFindsSourceDataFromRepoRoot),
     ("Mission template inspector uses configured data root", MissionTemplateInspectorUsesConfiguredDataRoot),
+    ("Mission template inspector ignores empty build output data", MissionTemplateInspectorIgnoresEmptyBuildOutputData),
     ("Mission template inspector reports missing template", MissionTemplateInspectorReportsMissingTemplate)
 };
 
@@ -957,6 +958,29 @@ static void MissionTemplateInspectorUsesConfiguredDataRoot()
 
         Assert.True(result.IsReadable, "Expected configured DataRoot template to be used.");
         Assert.Equal(Path.Combine(configuredDataRoot, "Templates", "template-test.miz"), result.FilePath);
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionTemplateInspectorIgnoresEmptyBuildOutputData()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var buildRoot = Path.Combine(root, "src", "DcsWarLauncher", "bin", "Release", "net8.0");
+        Directory.CreateDirectory(Path.Combine(buildRoot, "Data"));
+        var templatePath = Path.Combine(root, "src", "DcsWarLauncher", "Data", "Templates");
+        Directory.CreateDirectory(templatePath);
+        CreateMinimalMiz(Path.Combine(templatePath, "template-test.miz"));
+        var inspector = new MissionTemplateInspector(new TestEnvironment(buildRoot));
+
+        var result = inspector.InspectLatest();
+
+        Assert.True(result.IsReadable, "Expected source Data template to win over empty build output Data.");
+        Assert.True(result.FilePath.Contains(Path.Combine("src", "DcsWarLauncher", "Data", "Templates"), StringComparison.OrdinalIgnoreCase), "Expected source Data path.");
     }
     finally
     {
