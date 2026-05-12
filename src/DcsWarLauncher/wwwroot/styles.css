@@ -250,6 +250,16 @@ button.wide {
   gap: 10px;
 }
 
+.template-path {
+  grid-column: span 3;
+}
+
+.template-path strong {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .smoke-guide-panel {
   display: grid;
   gap: 12px;

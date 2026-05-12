@@ -72,6 +72,7 @@ const els = {
   templateBlueSlots: document.querySelector("#templateBlueSlots"),
   templateRedSlots: document.querySelector("#templateRedSlots"),
   templateAnchorCount: document.querySelector("#templateAnchorCount"),
+  templatePath: document.querySelector("#templatePath"),
   templateWarnings: document.querySelector("#templateWarnings"),
   templateAnchors: document.querySelector("#templateAnchors"),
   templateGroups: document.querySelector("#templateGroups"),
@@ -347,6 +348,7 @@ function renderTemplateInspection(template) {
   els.templateBlueSlots.textContent = blueSlots;
   els.templateRedSlots.textContent = redSlots;
   els.templateAnchorCount.textContent = anchors.length;
+  els.templatePath.textContent = template.filePath || "-";
 
   els.templateWarnings.innerHTML = "";
   for (const warning of template.warnings || []) {
