@@ -35,7 +35,7 @@ public static class DcsServerSettingsPatcher
 
         var missionList = BuildMissionList(missionPath);
         var normalized = PatchListStartIndex(serverSettingsText);
-        var pattern = @"\[""missionList""\]\s*=\s*\{.*?\n\s*\},\s*-- end of \[""missionList""\]";
+        var pattern = @"\[""missionList""\]\s*=\s*\{.*?\}\s*,?(?:\s*-- end of \[""missionList""\])?";
         if (Regex.IsMatch(normalized, pattern, RegexOptions.Singleline))
         {
             return Regex.Replace(normalized, pattern, missionList, RegexOptions.Singleline);

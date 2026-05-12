@@ -51,6 +51,7 @@ var tests = new (string Name, Action Test)[]
     ("Turn automation blocks invalid mission result", TurnAutomationBlocksInvalidMissionResult),
     ("Mission deployment replaces old turn missions", MissionDeploymentReplacesOldTurnMissions),
     ("DCS server settings patcher updates mission list", DcsServerSettingsPatcherUpdatesMissionList),
+    ("DCS server settings patcher replaces empty mission list", DcsServerSettingsPatcherReplacesEmptyMissionList),
     ("DCS server settings patcher refuses settings root", DcsServerSettingsPatcherRefusesSettingsRoot),
     ("DCS config check reports safe mode", DcsConfigCheckReportsSafeMode),
     ("DCS config check allows serverSettings mission list start", DcsConfigCheckAllowsServerSettingsMissionListStart),
@@ -1169,6 +1170,18 @@ static void DcsServerSettingsPatcherUpdatesMissionList()
     Assert.Equal("cfg", inspection.Root);
     Assert.True(inspection.HasListStartIndex, "Expected listStartIndex inspection.");
     Assert.Equal(@"C:\DCS\Missions\persistent-war-current.miz", inspection.MissionPath);
+}
+
+static void DcsServerSettingsPatcherReplacesEmptyMissionList()
+{
+    var patched = DcsServerSettingsPatcher.PatchMissionList(
+        "cfg = {\n\t[\"listStartIndex\"] = 0,\n\t[\"missionList\"] = {},\n\t[\"name\"] = \"DCS Server\",\n} -- end of cfg",
+        @"C:\DCS\Missions\persistent-war-current.miz");
+
+    Assert.True(patched.Contains("[\"listStartIndex\"] = 1", StringComparison.Ordinal), "Expected listStartIndex to be forced to 1.");
+    Assert.True(patched.Contains(@"C:\\DCS\\Missions\\persistent-war-current.miz", StringComparison.Ordinal), "Expected missionList to contain deployed mission path.");
+    Assert.True(!patched.Contains("[\"missionList\"] = {},", StringComparison.Ordinal), "Expected empty missionList to be replaced.");
+    Assert.True(CountOccurrences(patched, "[\"missionList\"]") == 2, "Expected missionList block and end comment only.");
 }
 
 static void DcsServerSettingsPatcherRefusesSettingsRoot()
