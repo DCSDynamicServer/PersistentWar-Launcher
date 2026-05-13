@@ -666,6 +666,32 @@ button.wide {
   width: fit-content;
 }
 
+.advanced-controls {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(34, 41, 52, .55);
+  padding: 10px 12px;
+}
+
+.advanced-controls summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.advanced-controls[open] {
+  display: grid;
+  gap: 12px;
+}
+
+.advanced-controls label {
+  margin-top: 10px;
+}
+
+.advanced-controls button {
+  width: fit-content;
+}
+
 .template-anchors,
 .template-groups {
   margin-top: 12px;

@@ -211,26 +211,29 @@
     <section class="tab-panel" data-tab-panel="server">
       <div class="grid">
         <div class="panel control-panel">
-        <h2>Remote Starter</h2>
+        <h2>Server Betrieb</h2>
         <label>
           Host Token
           <input id="token" type="password" placeholder="Bearer token">
         </label>
-        <label>
-          Mission
-          <input id="missionPath" type="text" placeholder="Leer lassen fuer Default-Mission">
-        </label>
         <div class="generated-mission">
-          <span>Letzte Turn-MIZ</span>
+          <span>Aktuelle Turn-MIZ</span>
           <strong id="generatedMissionName">-</strong>
           <small id="generatedMissionMeta">-</small>
-          <button id="useGeneratedMissionBtn" class="secondary" type="button">Uebernehmen</button>
-          <button id="deployGeneratedMissionBtn" class="secondary" type="button">Deployen</button>
+          <button id="deployGeneratedMissionBtn" type="button">Deployen</button>
         </div>
         <div class="actions">
           <button id="startBtn">Start</button>
           <button id="stopBtn" class="secondary">Stop</button>
         </div>
+        <details class="advanced-controls">
+          <summary>Manuelle Optionen</summary>
+          <label>
+            Mission Override
+            <input id="missionPath" type="text" placeholder="Leer lassen fuer Default-Mission">
+          </label>
+          <button id="useGeneratedMissionBtn" class="secondary" type="button">Turn-MIZ als Pfad setzen</button>
+        </details>
         <p id="actionMessage" class="message"></p>
       </div>
 
@@ -264,7 +267,7 @@
           <div><span>Letzter Run</span><strong id="schedulerRun">-</strong></div>
         </div>
         <div class="automation-actions">
-          <button id="runAutomationOnceBtn" class="secondary" type="button">Automation einmal testen</button>
+          <button id="runAutomationOnceBtn" class="secondary" type="button">Turn-Automation manuell ausfuehren</button>
         </div>
         <p id="schedulerMessage" class="message">-</p>
       </div>

@@ -691,7 +691,7 @@ async function stopServer() {
 }
 
 async function runAutomationOnce() {
-  const confirmed = window.confirm("Automation einmal ausfuehren? Wenn der Turn abgelaufen ist, kann ein neuer Campaign-State und eine neue Turn-MIZ erzeugt werden.");
+  const confirmed = window.confirm("Turn-Automation manuell ausfuehren? Wenn der Turn abgelaufen ist, wird der naechste Campaign-State und eine neue Turn-MIZ erzeugt.");
   if (!confirmed) {
     return;
   }
