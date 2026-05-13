@@ -27,3 +27,5 @@ src/DcsWarLauncher/Data/Generated/*
 !src/DcsWarLauncher/Data/Generated/.gitkeep
 src/DcsWarLauncher/Data/Results/*
 !src/DcsWarLauncher/Data/Results/.gitkeep
+src/DcsWarLauncher/Data/Logs/*
+!src/DcsWarLauncher/Data/Logs/.gitkeep

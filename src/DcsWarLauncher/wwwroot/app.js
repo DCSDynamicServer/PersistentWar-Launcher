@@ -21,6 +21,7 @@ const els = {
   schedulerChecked: document.querySelector("#schedulerChecked"),
   schedulerRun: document.querySelector("#schedulerRun"),
   schedulerMessage: document.querySelector("#schedulerMessage"),
+  automationLog: document.querySelector("#automationLog"),
   runAutomationOnceBtn: document.querySelector("#runAutomationOnceBtn"),
   configReady: document.querySelector("#configReady"),
   configMode: document.querySelector("#configMode"),
@@ -138,6 +139,17 @@ async function loadScheduler() {
     ? new Date(scheduler.lastRunUtc).toLocaleString()
     : "-";
   els.schedulerMessage.textContent = scheduler.lastMessage;
+}
+
+async function loadAutomationLog() {
+  const response = await fetch("/api/scheduler/log");
+  const log = await response.json().catch(() => null);
+  if (!response.ok || !log?.exists) {
+    els.automationLog.textContent = "-";
+    return;
+  }
+
+  els.automationLog.textContent = (log.lines || []).join("\n") || "-";
 }
 
 async function loadConfigCheck() {
@@ -721,6 +733,7 @@ async function runAutomationOnce() {
   await loadState();
   await loadGeneratedMission();
   await loadScheduler();
+  await loadAutomationLog();
   await loadConfigCheck();
   await loadReadiness();
 }
@@ -1013,6 +1026,7 @@ for (const button of els.tabButtons) {
 els.refreshBtn.addEventListener("click", async () => {
   await loadStatus();
   await loadScheduler();
+  await loadAutomationLog();
   await loadConfigCheck();
   await loadGeneratedMission();
   await loadMissionResultStatus();
@@ -1023,6 +1037,7 @@ els.refreshBtn.addEventListener("click", async () => {
 
 loadStatus();
 loadScheduler();
+loadAutomationLog();
 loadConfigCheck();
 loadGeneratedMission();
 loadMissionResultStatus();
@@ -1031,5 +1046,6 @@ loadState();
 loadTemplateInspection();
 setInterval(loadStatus, 5000);
 setInterval(loadScheduler, 10000);
+setInterval(loadAutomationLog, 30000);
 setInterval(loadConfigCheck, 30000);
 setInterval(updateRemaining, 30000);

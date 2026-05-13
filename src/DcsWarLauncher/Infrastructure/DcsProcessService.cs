@@ -10,11 +10,12 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
     public DcsStatus GetStatus()
     {
         var configuredPath = configuration["Launcher:DcsExecutablePath"] ?? "";
-        var isRunning = _process is { HasExited: false };
+        var process = GetRunningProcess(configuredPath);
+        var isRunning = process is not null;
 
         return new DcsStatus(
             isRunning,
-            isRunning ? _process!.Id : null,
+            process?.Id,
             configuredPath,
             configuration["Launcher:DefaultMissionPath"] ?? "",
             DateTimeOffset.UtcNow);
@@ -178,15 +179,15 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
 
     public Task<ActionResultDto> StartAsync(StartMissionRequest request)
     {
-        if (_process is { HasExited: false })
-        {
-            return Task.FromResult(ActionResultDto.Fail("DCS is already running."));
-        }
-
         var exePath = configuration["Launcher:DcsExecutablePath"];
         if (string.IsNullOrWhiteSpace(exePath) || !File.Exists(exePath))
         {
             return Task.FromResult(ActionResultDto.Fail("DCS executable path is not configured or does not exist."));
+        }
+
+        if (GetRunningProcess(exePath) is { } running)
+        {
+            return Task.FromResult(ActionResultDto.Fail($"DCS is already running as process {running.Id}."));
         }
 
         var missionPath = string.IsNullOrWhiteSpace(request.MissionPath)
@@ -219,23 +220,81 @@ public sealed class DcsProcessService(IConfiguration configuration, ILogger<DcsP
 
     public Task<ActionResultDto> StopAsync()
     {
-        if (_process is null || _process.HasExited)
+        var process = GetRunningProcess(configuration["Launcher:DcsExecutablePath"] ?? "");
+        if (process is null)
         {
-            return Task.FromResult(ActionResultDto.Fail("No tracked DCS process is running."));
+            return Task.FromResult(ActionResultDto.Fail("No DCS process is running."));
         }
 
-        _process.Kill(entireProcessTree: true);
-        logger.LogInformation("Stopped DCS process {ProcessId}", _process.Id);
+        process.Kill(entireProcessTree: true);
+        logger.LogInformation("Stopped DCS process {ProcessId}", process.Id);
         return Task.FromResult(ActionResultDto.Ok("Stopped DCS process."));
     }
 
     public Task<ActionResultDto> StopIfRunningAsync()
     {
-        if (_process is null || _process.HasExited)
+        if (GetRunningProcess(configuration["Launcher:DcsExecutablePath"] ?? "") is null)
         {
             return Task.FromResult(ActionResultDto.Ok("DCS process was not running."));
         }
 
         return StopAsync();
+    }
+
+    private Process? GetRunningProcess(string configuredPath)
+    {
+        if (_process is { HasExited: false })
+        {
+            return _process;
+        }
+
+        _process = null;
+
+        if (string.IsNullOrWhiteSpace(configuredPath))
+        {
+            return null;
+        }
+
+        var configuredFileName = Path.GetFileNameWithoutExtension(configuredPath);
+        if (string.IsNullOrWhiteSpace(configuredFileName))
+        {
+            return null;
+        }
+
+        var configuredFullPath = Path.GetFullPath(configuredPath);
+        foreach (var process in Process.GetProcessesByName(configuredFileName))
+        {
+            if (IsConfiguredProcess(process, configuredFullPath))
+            {
+                _process = process;
+                return process;
+            }
+
+            process.Dispose();
+        }
+
+        return null;
+    }
+
+    private static bool IsConfiguredProcess(Process process, string configuredFullPath)
+    {
+        try
+        {
+            var processPath = process.MainModule?.FileName;
+            return !string.IsNullOrWhiteSpace(processPath) &&
+                Path.GetFullPath(processPath).Equals(configuredFullPath, StringComparison.OrdinalIgnoreCase);
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            return false;
+        }
+        catch (NotSupportedException)
+        {
+            return false;
+        }
     }
 }

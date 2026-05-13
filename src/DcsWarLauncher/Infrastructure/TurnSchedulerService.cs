@@ -7,6 +7,7 @@ namespace DcsWarLauncher.Infrastructure;
 public sealed class TurnSchedulerService(
     IOptions<SchedulerOptions> options,
     TurnAutomationService automation,
+    AutomationLogService automationLog,
     TurnSchedulerState state,
     ILogger<TurnSchedulerService> logger) : BackgroundService
 {
@@ -18,14 +19,31 @@ public sealed class TurnSchedulerService(
         if (!schedulerOptions.Enabled)
         {
             state.MarkIdle("Scheduler disabled by configuration.");
+            await automationLog.AppendAsync("Scheduler disabled by configuration.", stoppingToken);
             return;
         }
 
         logger.LogInformation("Turn scheduler started with {PollSeconds}s poll interval.", schedulerOptions.PollSeconds);
+        await automationLog.AppendAsync($"Scheduler started with {schedulerOptions.PollSeconds}s poll interval.", stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            await CheckTurnAsync(schedulerOptions, stoppingToken);
+            try
+            {
+                await CheckTurnAsync(schedulerOptions, stoppingToken);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                var message = $"Scheduler error: {ex.Message}";
+                logger.LogError(ex, "Turn scheduler failed.");
+                state.MarkIdle(message);
+                await automationLog.AppendAsync(message, stoppingToken);
+            }
+
             await Task.Delay(TimeSpan.FromSeconds(schedulerOptions.PollSeconds), stoppingToken);
         }
     }
@@ -37,6 +55,7 @@ public sealed class TurnSchedulerService(
         if (!schedulerOptions.AdvanceWhenTurnExpired)
         {
             state.MarkIdle("Scheduler active; automatic turn advance disabled.");
+            await automationLog.AppendAsync("Scheduler active; automatic turn advance disabled.", cancellationToken);
             return;
         }
 
@@ -45,10 +64,12 @@ public sealed class TurnSchedulerService(
         if (!result.TurnAdvanced)
         {
             state.MarkIdle(result.Message);
+            await automationLog.AppendAsync(result.Message, cancellationToken);
             return;
         }
 
         logger.LogInformation("Automation result for turn {Turn}: {Message}", result.Turn, result.Message);
+        await automationLog.AppendAsync(result.Message, cancellationToken);
 
         if (!result.Success)
         {

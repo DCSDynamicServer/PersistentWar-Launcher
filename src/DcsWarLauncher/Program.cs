@@ -22,6 +22,7 @@ builder.Services.AddSingleton<ReadinessChecker>();
 builder.Services.AddSingleton<MissionDeploymentService>();
 builder.Services.AddSingleton<TurnAutomationService>();
 builder.Services.AddSingleton<TurnSchedulerState>();
+builder.Services.AddSingleton<AutomationLogService>();
 builder.Services.AddHostedService<TurnSchedulerService>();
 
 var app = builder.Build();
@@ -40,6 +41,8 @@ app.MapGet("/api/server/status", (DcsProcessService dcs) => Results.Ok(dcs.GetSt
 app.MapGet("/api/server/config-check", (DcsProcessService dcs) => Results.Ok(dcs.GetConfigCheck()));
 
 app.MapGet("/api/scheduler/status", (TurnSchedulerState scheduler) => Results.Ok(scheduler.GetSnapshot()));
+
+app.MapGet("/api/scheduler/log", (AutomationLogService log) => Results.Ok(log.GetSnapshot()));
 
 app.MapPost("/api/scheduler/run-once", async (
     HttpContext context,

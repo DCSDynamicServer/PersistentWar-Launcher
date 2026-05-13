@@ -93,3 +93,8 @@ public sealed record MissionDeploymentResult(
     string? MissionPath,
     int DeletedOldMissions,
     bool ServerSettingsPatched);
+
+public sealed record AutomationLogSnapshot(
+    bool Exists,
+    string Path,
+    IReadOnlyCollection<string> Lines);

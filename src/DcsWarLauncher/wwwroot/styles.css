@@ -205,6 +205,27 @@ button.wide {
   width: 100%;
 }
 
+.automation-log {
+  display: grid;
+  gap: 8px;
+}
+
+.automation-log span {
+  color: var(--muted);
+}
+
+.automation-log pre {
+  max-height: 170px;
+  overflow: auto;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #111820;
+  color: var(--muted);
+  padding: 10px 12px;
+  white-space: pre-wrap;
+}
+
 .message {
   min-height: 22px;
   margin-bottom: 0;

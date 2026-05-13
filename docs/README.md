@@ -33,7 +33,7 @@ Scheduler fuer 24/7-Betrieb:
 - `Scheduler:Enabled`: Aktiviert den Hintergrunddienst.
 - `Scheduler:PollSeconds`: Wie oft der aktive Turn geprueft wird.
 - `Scheduler:AdvanceWhenTurnExpired`: Schliesst abgelaufene Turns automatisch ab.
-- `Scheduler:AutoStopServer`: Stoppt DCS vor der Turn-Auswertung, falls es vom Launcher gestartet wurde.
+- `Scheduler:AutoStopServer`: Stoppt DCS vor der Turn-Auswertung. Der Launcher erkennt DCS ueber den konfigurierten `DcsExecutablePath`, auch wenn der Prozess schon lief.
 - `Scheduler:AutoStartServer`: Startet DCS nach der Turn-Auswertung wieder.
 
 ## Remote API
@@ -113,8 +113,17 @@ Auf dem DCS-Host setzt du:
 ```
 
 Wenn der aktive Turn abgelaufen ist, erzeugt der Scheduler automatisch den naechsten
-Campaign-State. Sobald DCS-Pfade und Mission-Export fertig sind, wird daraus der komplette
-6h-Zyklus: stoppen, auswerten, neue Mission erzeugen, neu starten.
+Campaign-State, bereitet die naechste Turn-MIZ vor, deployed sie in den festen
+DCS-Missionspfad, patched `serverSettings.lua` und startet DCS danach wieder.
+
+Fuer den ersten Live-Test:
+
+1. `Scheduler:Enabled` auf `true` setzen.
+2. Launcher neu starten.
+3. Im Server-Tab pruefen, dass `Config` bereit ist und `Modus` auf Live automation steht.
+4. Einmal `Deploy & Start` druecken, damit die aktuelle Turn-MIZ sauber im DCS-Missionsordner liegt.
+5. Den Launcher offen lassen. Nach Turn-Ende uebernimmt der Scheduler den naechsten 6h-Zyklus.
+6. Den Ablauf im Server-Tab unter `Automation Log` oder direkt in `Data/Logs/automation.log` kontrollieren.
 
 ## Naechste Module
 
