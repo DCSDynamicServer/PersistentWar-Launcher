@@ -41,6 +41,12 @@ public static class MissionRuntimeScriptPatcher
             WL.events = WL.events or {}
             WL.finalized = false
 
+            local function wl_log(message)
+                if env and env.info then
+                    env.info("[WL] " .. tostring(message or ""))
+                end
+            end
+
             local function wl_escape(value)
                 value = tostring(value or "")
                 value = value:gsub("\\", "\\\\")
@@ -94,17 +100,22 @@ public static class MissionRuntimeScriptPatcher
 
             local function wl_result_path()
                 if not lfs or not lfs.writedir then
+                    wl_log("lfs or lfs.writedir unavailable")
                     return nil
                 end
                 local dir = lfs.writedir() .. "Logs\\DcsWarLauncher\\"
                 if lfs.mkdir then
-                    pcall(lfs.mkdir, dir)
+                    local ok, err = pcall(lfs.mkdir, dir)
+                    if not ok then
+                        wl_log("lfs.mkdir failed: " .. tostring(err))
+                    end
                 end
                 return dir .. WL.resultFileName
             end
 
             local function wl_write_result(final)
                 if not io then
+                    wl_log("io unavailable; result cannot be written")
                     trigger.action.outText("WL result could not be written: io library unavailable.", 10)
                     return
                 end
@@ -117,6 +128,7 @@ public static class MissionRuntimeScriptPatcher
 
                 local file = io.open(path, "w")
                 if not file then
+                    wl_log("io.open failed for " .. path)
                     trigger.action.outText("WL result could not be written: " .. path, 10)
                     return
                 end
@@ -141,6 +153,7 @@ public static class MissionRuntimeScriptPatcher
                 file:write("  ]\n")
                 file:write("}\n")
                 file:close()
+                wl_log("result written to " .. path)
             end
 
             world.addEventHandler({
@@ -177,6 +190,8 @@ public static class MissionRuntimeScriptPatcher
                 return timer.getTime() + 60
             end
 
+            wl_log("turn monitor startup; result file " .. WL.resultFileName)
+            wl_write_result(false)
             timer.scheduleFunction(wl_tick, {}, timer.getTime() + 60)
             trigger.action.outText("War Launcher 6h turn monitor active.", 10)
             """;
