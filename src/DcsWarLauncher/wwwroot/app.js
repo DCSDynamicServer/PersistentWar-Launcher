@@ -669,13 +669,23 @@ function updateRemaining() {
 
 async function startServer() {
   els.actionMessage.textContent = "Starte...";
-  const response = await fetch("/api/server/start", {
+  const missionOverride = els.missionPath.value.trim();
+  const endpoint = missionOverride || !latestGeneratedMission?.exists
+    ? "/api/server/start"
+    : "/api/server/deploy-latest-and-start";
+  const body = missionOverride
+    ? JSON.stringify({ missionPath: missionOverride })
+    : JSON.stringify({ missionPath: null });
+
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: authHeaders(),
-    body: JSON.stringify({ missionPath: els.missionPath.value || null })
+    body
   });
   const result = await response.json().catch(() => ({ message: "Unauthorized oder ungueltige Antwort." }));
   els.actionMessage.textContent = result.message;
+  await loadGeneratedMission();
+  await loadConfigCheck();
   await loadStatus();
 }
 

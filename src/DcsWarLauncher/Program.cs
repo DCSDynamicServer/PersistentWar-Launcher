@@ -84,6 +84,40 @@ app.MapPost("/api/server/start", async (HttpContext context, DcsProcessService d
     return result.Success ? Results.Ok(result) : Results.BadRequest(result);
 });
 
+app.MapPost("/api/server/deploy-latest-and-start", async (
+    HttpContext context,
+    MissionPlanExporter exporter,
+    MissionDeploymentService deployment,
+    DcsProcessService dcs) =>
+{
+    if (!IsAuthorized(context, app.Configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    var latest = exporter.GetLatestGeneratedMission();
+    if (!latest.Exists ||
+        string.IsNullOrWhiteSpace(latest.MizFilePath) ||
+        string.IsNullOrWhiteSpace(latest.MizFileName))
+    {
+        return Results.BadRequest(ActionResultDto.Fail("No prepared Turn-MIZ found."));
+    }
+
+    var deployResult = await deployment.DeployAsync(latest.MizFilePath, latest.MizFileName);
+    if (!deployResult.Success || string.IsNullOrWhiteSpace(deployResult.MissionPath))
+    {
+        return Results.BadRequest(ActionResultDto.Fail($"Mission deploy failed: {deployResult.Message}"));
+    }
+
+    var startResult = await dcs.StartAsync(new StartMissionRequest(deployResult.MissionPath));
+    if (!startResult.Success)
+    {
+        return Results.BadRequest(ActionResultDto.Fail($"Mission deployed, but DCS was not started: {startResult.Message}"));
+    }
+
+    return Results.Ok(ActionResultDto.Ok($"{deployResult.Message} {startResult.Message}"));
+});
+
 app.MapPost("/api/server/stop", async (HttpContext context, DcsProcessService dcs) =>
 {
     if (!IsAuthorized(context, app.Configuration))
