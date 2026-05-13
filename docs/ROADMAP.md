@@ -1,96 +1,148 @@
 # Roadmap
 
-## Phase 1: Solides Fundament
+## Status
 
-- Backend sauber strukturieren.
-- Remote Start/Stop absichern.
-- 6h-Turns persistieren.
-- Frontlinien und AI-Orders sichtbar machen.
-- 24/7 Scheduler fuer automatische Turn-Wechsel.
+Der Launcher hat den ersten spielbaren Kern:
 
-## Phase 2: Liberation-aehnliches Dashboard
+- ASP.NET Core Backend mit Web UI.
+- Persistenter Campaign-State mit 6h-Turns.
+- Campaign-, Forces-, Mission-, Server- und History-Tabs.
+- Template-MIZ-Erkennung mit WL-Ankern.
+- Turn-MIZ-Vorbereitung aus Template.
+- AI-Flights werden in die vorbereitete MIZ geschrieben.
+- Player-Slots bleiben aus dem Template erhalten.
+- Mission Plan Export inklusive Warehouse-Plan.
+- DCS Dedicated Server kann per Launcher gestartet und gestoppt werden.
+- Letzte Turn-MIZ wird in einen festen DCS-Missionspfad deployed.
+- `serverSettings.lua` wird gepatched, damit DCS die deployed MIZ startet.
+- Scheduler kann abgelaufene Turns auswerten, neue MIZ erzeugen, deployen und DCS neu starten.
+- DCS `dcs.log` kann als Mission Result eingelesen werden.
+- Leere `debrief.log` Dateien werden ignoriert.
+- Automation Log im Server-Tab.
 
-- Karte mit Airbases, Frontlinien und Objectives.
-- Kampagnenpanel fuer Supplies, Squadrons und Pakete.
-- Serverstatus, aktiver Turn, naechster Restart.
-- Airbase-, Squadron- und Package-Daten im Campaign-State.
+## Aktueller Live-Test
 
-## Phase 3: Kampagnenlogik
+Ziel: Der Server soll bis zum naechsten Abend durchlaufen und mindestens einen automatischen Turn-Wechsel schaffen.
 
-- Erweiterte Airbase Ownership und Capture-Regeln.
-- Ground Units, Supply Depots, Factories.
-- Squadron- und Aircraft-Pool mit echten Verlusten und Reparaturzyklen.
-- Attrition, Repair, Reinforcement.
-- Bodendruck und Supply wirken auf Objective-Kontrolle und Airbase Capture.
+Pruefen:
 
-## Phase 4: DCS Integration
+- Launcher bleibt aktiv.
+- `Scheduler:Enabled`, `AutoStopServer`, `AutoStartServer` und `AdvanceWhenTurnExpired` sind aktiv.
+- `MissionResultDirectory` zeigt auf den DCS `Logs` Ordner.
+- Mission-Tab erkennt `dcs.log` als Mission Result.
+- DCS wird zum Turn-Ende gestoppt.
+- Neuer Campaign-State wird berechnet.
+- Neue Turn-MIZ wird vorbereitet und deployed.
+- DCS startet wieder mit der naechsten Turn-MIZ.
+- Automation Log und Turn History zeigen den Ablauf.
 
-- Mission-Dateien erzeugen oder vorbereiten.
-- Template-Anker aus Mission Editor erkennen und mit Campaign-Objectives verknuepfen.
-- Weitere DCS-Anker-Typen fuer Airbases, Depots, Spawns, SAM/EWR und Reservepunkte vorbereiten.
-- Template-MIZ-Dokumentation in `docs/TEMPLATE_MIZ_GUIDE.md` aktuell halten.
-- DCS-Logs und Events einlesen.
-- Verluste und Objective-Erfolge automatisch in BattleReports umwandeln.
-- Automatischer 6h-Restart mit naechster Mission.
+Bekannte offene Punkte:
 
-## v0.09: Operational Core
+- Das eingebettete MIZ-Runtime-Script laeuft noch nicht zuverlaessig. Fuer den Live-Test wird deshalb `dcs.log` als Result-Quelle verwendet.
+- Die Mission selbst beendet sich noch nicht sicher aus der MIZ heraus; der Launcher stoppt DCS extern.
 
-- Echte AI-Units und einfache Routen aus dem MissionPlan in die vorbereitete `.miz` schreiben.
-- AI-Packages an `WL_OBJ_*`, `WL_FRONT_*`, `WL_AIRBASE_*`, `WL_HELI_BASE_*` und `WL_FARP_*` Anker binden.
-- Airbase- und FARP-Startlogik fuer AI/Helis vorbereiten, inklusive Fallback auf sichere Basen.
-- Player-Slots weiterhin unveraendert aus dem Template erhalten.
-- DCS-Logs und Missionsergebnisse einlesen.
-- Automatische BattleReports aus Kills, Verlusten, Objective-Events und Missionsausgang erzeugen.
-- Mission-Result-Format fuer direkte Reports, Eventlisten und JSONL/DCS-Log-Exports dokumentieren.
-- Warehouse/Fuel/Ammo-Patching fuer einfache Supply-Wirkung pro Base vorbereiten.
-- Warehouse-Plan im `mission-plan.json` exportieren; `.miz`-`warehouses` fuer v0.08 unveraendert lassen.
-- Bekannte Caucasus-Airport-Warehouse-IDs fuer spaeteres Fuel/Operating-Level-Patching mappen.
-- Echte DCS-Airport-Warehouse-Mutation und Shadow-Warehouse-Block fuer v0.08 deaktivieren, bis Terrain-Graphics-Init-Stabilitaet ingame bestaetigt ist.
-- v0.08 Readiness-Check fuer finalen DCS-Smoke-Test im Mission-Tab anzeigen.
-- Manuellen v0.08 Smoke-State vorbereiten koennen, wenn der aktive Test-State ausgeblutet ist.
-- Campaign-State manuell auf Turn 1 zuruecksetzen koennen, inklusive automatischem Backup.
-- Operationalen 6h-Loop herstellen: Mission vorbereiten, Server starten, Turn laufen lassen, Ergebnis importieren, naechste Mission erzeugen.
-- Minimaler Admin-Testbetrieb mit mehreren Spielern auf dem Server.
+## v0.10: AI Air Logic
 
-## Phase 5: 24/7 Deployment
+Ziel: AI-Fluege sollen nachvollziehbar und passend zur Kampagnenlage geplant werden.
 
-- Automation-Run kapseln: abgelaufenen Turn auswerten, naechste Turn-MIZ vorbereiten und optional genau diese MIZ starten.
-- Turn-MIZ vor Serverstart in festen DCS-Missionspfad deployen und alte War-Launcher-Turn-MIZ-Dateien bereinigen.
-- DCS `serverSettings.lua` patchen, damit `missionList[1]` auf die deployed Turn-MIZ zeigt und das WebGUI im Betrieb umgangen wird.
+- AI-Package-Rollen sauber trennen: CAP, Intercept, CAS, Strike, SEAD, Escort, Transport.
+- Package-Auswahl aus Frontlage, Objectives, Airbase-Status, Supply und Factory-Zielen ableiten.
+- AI-Fluege an sinnvolle WL-Anker binden: Objectives, Front, Airbases, Depots, FARPs.
+- Sichere Departure-Basen und Fallback-Basen pro Coalition waehlen.
+- Heli-AI von FARPs oder Heli-Basen starten lassen.
+- Spieleranzahl pro Coalition spaeter als AI-Support-Budget beruecksichtigen.
+- Keine AI-Packages erzeugen, wenn keine passenden Flugzeuge, Basen oder Supply vorhanden sind.
+
+## v0.11: Ground War
+
+Ziel: Bodenkrieg soll Frontlinien glaubhaft verschieben.
+
+- Ground Units erhalten Ziele: verteidigen, reorganisieren, angreifen, rueckfallen.
+- Bodenverbaende versuchen naechste Objectives, Basen oder Depots zu erreichen.
+- Eroberung basiert auf Staerke, Readiness, Supply, Luftueberlegenheit und gegnerischer Verteidigung.
+- Bodenverbaende koennen neue Frontabschnitte erzeugen oder alte aufgeben.
+- Einheiten verlieren Staerke und Readiness durch Kampf, schlechte Supply und Luftangriffe.
+- Neue AI-Bodeneinheiten duerfen nur entstehen, wenn Factories, Depots und Supply-Routen passen.
+
+## v0.12: Warehouse und Supply
+
+Ziel: Supply soll der Motor der Kampagne werden.
+
+- Internes Warehouse-Modell fuer Fuel, Ammo, Ersatzteile und Ground Stores.
+- Airbases, Depots, FARPs und Factories erhalten Supply-Werte.
+- Supply beeinflusst AI-Fluege, Reparatur, Reinforcement und Ground-Spawns.
+- Warehouse/Fuel/Ammo-Patching fuer DCS schrittweise aktivieren.
+- Bekannte Caucasus-Airport-Warehouse-IDs pflegen und spaeter fuer andere Maps erweiterbar machen.
+- `.miz` Warehouse-Patching erst aktivieren, wenn DCS-Ladestabilitaet bestaetigt ist.
+
+## v0.13: Transport und Supply Flights
+
+Ziel: C-130, Chinook und spaeter Trucks verbinden die Logistik mit der Front.
+
+- C-130 Supply-Fluege zwischen Hauptbasen, Airbases und Depots planen.
+- Chinook/Transportheli-Fluege zu FARPs und Frontdepots planen.
+- Erfolgreiche Supply-Fluege erhoehen Stores/Fuel/Ammo am Ziel.
+- Verlorene oder abgefangene Supply-Fluege reduzieren Nachschub.
+- Supply-Escort und Intercept-Missionen aus diesen Transporten ableiten.
+- Ground-Spawns und Heli-Spawns an vorhandene Supply koppeln.
+
+## v0.14: FARPs und Heli Operations
+
+Ziel: FARPs sollen automatisch aus der Kampagnenlage entstehen und verschwinden.
+
+- FARP als Campaign-Objekt: Coalition, Position, Status, Fuel, Ammo, Stores, verbundenes Objective.
+- Automatische FARP-Erzeugung nahe stabiler oder neu eroberter Frontabschnitte.
+- FARP-Aktivierung nur bei ausreichender Supply.
+- AI-Helis koennen von aktiven FARPs nachspawnen.
+- FARPs koennen durch Frontverlust, Supply-Mangel oder Angriffe deaktiviert werden.
+- Template-Anker `WL_FARP_*` und spaeter echte FARP-MIZ-Erzeugung unterstuetzen.
+
+## v0.15: Player Tasking und Kneeboard
+
+Ziel: Spieler sollen pro Turn klare Aufgaben bekommen, ohne externe Flugplanung vorauszusetzen.
+
+- Pro Coalition automatisch Mission Cards erzeugen.
+- Objectives, Frontlinien, Zielkoordinaten, Bedrohung und Prioritaeten im Briefing darstellen.
+- F10 Marker fuer Front, Ziele, Depots, FARPs und Strike-Ziele erzeugen.
+- Kneeboard-Seiten pro Coalition generieren und in die MIZ einbetten.
+- Optional spaeter Package-spezifische Kneeboards fuer CAS, CAP, Strike und Transport.
+- Optional Export fuer externe Flugplanung/MDC-kompatible Tools.
+
+## v0.16: Multiplayer Balance
+
+Ziel: Ungleich verteilte Spielerzahlen sollen den Krieg nicht kaputtmachen.
+
+- Spieleranzahl und Aktivitaet pro Coalition aus Logs oder Serverstatus erfassen.
+- Unterbesetzte Coalition erhaelt begrenztes AI-Support-Budget.
+- AI-Support in CAP, Intercept, CAS, Strike oder Supply-Defense uebersetzen.
+- Kompensation begrenzen, damit Spielerleistung weiter wichtig bleibt.
+- Player-Imbalance und AI-Kompensation in Turn History anzeigen.
+
+## v0.17: Deployment Polish
+
+Ziel: Der Serverbetrieb soll robust und wartbar werden.
+
 - Windows-Service Installation.
 - Log-Rotation und Healthchecks.
-- Backup des Campaign-State.
+- Campaign-State Backups pruefbar machen.
 - Admin-Login, Token-Rotation und IP-Allowlist.
-
-## Nach Phase 4: UI Cleanup / Navigation
-
-- Dashboard in klare Tabs aufteilen: Campaign, Forces, Mission, Server, History.
-- Oberen Statusbereich auf Serverstatus, aktuellen Turn, naechsten Restart und Warnungen reduzieren.
-- Mission Template, Mission Plan Vorschau, Export und MIZ-Vorbereitung in einen eigenen Mission-Tab verschieben.
-- Forces-Ansicht fuer Squadrons, Packages, Ground War, Supply und Factories zusammenfassen.
-- Turn History und spaetere Battle Reports/Log-Auswertung in einen eigenen History-Tab auslagern.
-- Keine neuen Features in diesem Block, nur bessere Bedienbarkeit und Uebersicht.
-
-## Phase 5 Polish: Multiplayer Balance
-
-- Spieleranzahl und Aktivitaet pro Coalition aus DCS-Logs oder Serverstatus erfassen.
-- Unterbesetzte Coalition erhaelt ein AI-Support-Budget.
-- AI-Budget in zusaetzliche CAP, Intercept, CAS oder Strike Packages uebersetzen.
-- Kompensation nur teilweise anwenden, damit Spielerleistung weiterhin wichtig bleibt.
-- Player-Imbalance und AI-Kompensation in Turn History speichern.
-- UI-Hinweis, wenn ein Turn durch Spieler-Ungleichgewicht kompensiert wurde.
+- Server-Tab weiter vereinfachen: normaler Betrieb mit so wenig Buttons wie moeglich.
 
 ## Nach v0.1: Campaign Setup Wizards
+
+Ziel: Neue Campaigns ohne Handarbeit in JSON-Dateien erstellen.
 
 - Neue Campaign ueber UI erstellen.
 - Theater, Hauptbasen und Turn-Dauer auswaehlen.
 - Player-Slots pro Hauptbasis konfigurieren, ohne sie spaeter automatisch zu entfernen.
-- Squadrons, Ground Units, Supply Depots und Factories ueber Formulare anlegen.
+- Squadrons, Ground Units, Supply Depots, Factories und FARPs ueber Formulare anlegen.
 - Template-Mission auswaehlen und mit Campaign-Daten verknuepfen.
 - Balancing-Presets fuer Attrition, Repair, Supply und Reinforcement einstellen.
 - Server- und Remote-Settings gefuehrt einrichten.
 
 ## v0.2: Real Weather und Turn Atmosphaere
+
+Ziel: Jeder 6h-Turn soll sich wetter- und zeitmaessig lebendig anfuehlen.
 
 - Reales METAR-Wetter fuer das Campaign-Gebiet einlesen.
 - Alle 6h Turn-Wechsel neue Wetterdaten anwenden.
