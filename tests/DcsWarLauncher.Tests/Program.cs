@@ -620,6 +620,8 @@ static void MissionPlanExporterPreparesMissionCopy()
         Assert.True(missionText.Contains("WL_AI_flight-blue-test", StringComparison.Ordinal), "Expected generated AI package group.");
         Assert.True(missionText.Contains("[\"type\"] = \"F-16C_50\"", StringComparison.Ordinal), "Expected generated AI aircraft type.");
         Assert.True(missionText.Contains("[\"name\"] = \"WL_FRONT_01\"", StringComparison.Ordinal), "Expected generated route through front anchor.");
+        Assert.True(missionText.Contains("War Launcher 6h turn monitor active.", StringComparison.Ordinal), "Expected embedded turn monitor script.");
+        Assert.True(missionText.Contains("WL_TURN_COMPLETE", StringComparison.Ordinal), "Expected turn completion flag.");
         var warehouseEntry = archive.GetEntry("warehouses") ?? throw new InvalidOperationException("Expected warehouses entry.");
         using var warehouseStream = warehouseEntry.Open();
         using var warehouseReader = new StreamReader(warehouseStream);

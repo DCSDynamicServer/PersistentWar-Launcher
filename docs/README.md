@@ -27,6 +27,7 @@ Passe `src/DcsWarLauncher/appsettings.json` an:
 - `StartArguments`: CLI-Argumente fuer DCS. `{mission}` wird durch den Mission-Pfad ersetzt.
 - `RemoteToken`: Token fuer Remote-Start, Stop und State-Speichern.
 - `DataRoot`: Optional, aber fuer Serverbetrieb empfohlen. Fester Pfad zum Launcher-Data-Ordner, damit Templates, Generated-MIZ, Results und `war-state.json` unabhaengig vom EXE-Startordner gefunden werden.
+- `MissionResultDirectory`: Optional. Externer Ordner fuer DCS Mission-Results. Fuer den Serverbetrieb auf `Saved Games\...\Logs\DcsWarLauncher` setzen, weil die generierte MIZ dort ihre 6h-Ergebnisdatei schreibt.
 
 Scheduler fuer 24/7-Betrieb:
 
@@ -115,15 +116,22 @@ Auf dem DCS-Host setzt du:
 Wenn der aktive Turn abgelaufen ist, erzeugt der Scheduler automatisch den naechsten
 Campaign-State, bereitet die naechste Turn-MIZ vor, deployed sie in den festen
 DCS-Missionspfad, patched `serverSettings.lua` und startet DCS danach wieder.
+Die generierte MIZ schreibt waehrend des Turns alle 60 Sekunden ein JSON-Result und
+markiert nach 6h `WL_TURN_COMPLETE`; danach versucht sie den DCS-Serverlauf sauber zu
+stoppen. Falls DCS das Stoppen nicht erlaubt, stoppt der Scheduler den Prozess vor der
+Auswertung.
+Damit DCS diese Result-Datei schreiben kann, muessen `io` und `lfs` in der DCS
+`MissionScripting.lua` fuer den Server verfuegbar sein.
 
 Fuer den ersten Live-Test:
 
 1. `Scheduler:Enabled` auf `true` setzen.
-2. Launcher neu starten.
-3. Im Server-Tab pruefen, dass `Config` bereit ist und `Modus` auf Live automation steht.
-4. Einmal `Deploy & Start` druecken, damit die aktuelle Turn-MIZ sauber im DCS-Missionsordner liegt.
-5. Den Launcher offen lassen. Nach Turn-Ende uebernimmt der Scheduler den naechsten 6h-Zyklus.
-6. Den Ablauf im Server-Tab unter `Automation Log` oder direkt in `Data/Logs/automation.log` kontrollieren.
+2. `Launcher:MissionResultDirectory` auf `C:\Users\DCS\Saved Games\DCS.dcs_serverrelease\Logs\DcsWarLauncher` setzen.
+3. Launcher neu starten.
+4. Im Server-Tab pruefen, dass `Config` bereit ist und `Modus` auf Live automation steht.
+5. Einmal `Deploy & Start` druecken, damit die aktuelle Turn-MIZ sauber im DCS-Missionsordner liegt.
+6. Den Launcher offen lassen. Nach Turn-Ende uebernimmt der Scheduler den naechsten 6h-Zyklus.
+7. Den Ablauf im Server-Tab unter `Automation Log` oder direkt in `Data/Logs/automation.log` kontrollieren.
 
 ## Naechste Module
 

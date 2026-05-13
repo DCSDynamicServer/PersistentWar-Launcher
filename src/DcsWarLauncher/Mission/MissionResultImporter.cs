@@ -7,7 +7,7 @@ namespace DcsWarLauncher.Mission;
 public sealed class MissionResultImporter(IWebHostEnvironment environment, IConfiguration? configuration = null)
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private readonly string _resultsPath = Path.Combine(GetDataRoot(environment, configuration), "Results");
+    private readonly string _resultsPath = GetResultsPath(environment, configuration);
 
     public MissionResultStatus GetLatestResultStatus()
     {
@@ -305,6 +305,14 @@ public sealed class MissionResultImporter(IWebHostEnvironment environment, IConf
         configuration is null
             ? DataPathResolver.GetDataRoot(environment)
             : DataPathResolver.GetDataRoot(environment, configuration);
+
+    private static string GetResultsPath(IWebHostEnvironment environment, IConfiguration? configuration)
+    {
+        var configuredPath = configuration?["Launcher:MissionResultDirectory"];
+        return string.IsNullOrWhiteSpace(configuredPath)
+            ? Path.Combine(GetDataRoot(environment, configuration), "Results")
+            : configuredPath;
+    }
 }
 
 public sealed record MissionResultStatus(

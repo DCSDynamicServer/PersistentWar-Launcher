@@ -83,6 +83,7 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment, IConfig
         await EmbedMissionPlanAsync(mizFilePath, plan.FilePath);
         await PatchMissionBriefingAsync(mizFilePath, state);
         await PatchGeneratedAiFlightsAsync(mizFilePath, plan.FilePath);
+        await PatchTurnRuntimeScriptAsync(mizFilePath, state);
         return new PreparedMissionResult(
             mizFileName,
             mizFilePath,
@@ -699,6 +700,30 @@ public sealed class MissionPlanExporter(IWebHostEnvironment environment, IConfig
 
         missionEntry.Delete();
         var patchedMission = MissionLuaPatcher.PatchGeneratedAiFlights(missionText, plan);
+        var newEntry = archive.CreateEntry("mission", CompressionLevel.Optimal);
+        await using var entryStream = newEntry.Open();
+        await using var writer = new StreamWriter(entryStream);
+        await writer.WriteAsync(patchedMission);
+    }
+
+    private static async Task PatchTurnRuntimeScriptAsync(string mizFilePath, WarState state)
+    {
+        using var archive = ZipFile.Open(mizFilePath, ZipArchiveMode.Update);
+        var missionEntry = archive.GetEntry("mission");
+        if (missionEntry is null)
+        {
+            return;
+        }
+
+        string missionText;
+        await using (var stream = missionEntry.Open())
+        using (var reader = new StreamReader(stream))
+        {
+            missionText = await reader.ReadToEndAsync();
+        }
+
+        missionEntry.Delete();
+        var patchedMission = MissionRuntimeScriptPatcher.Patch(missionText, state);
         var newEntry = archive.CreateEntry("mission", CompressionLevel.Optimal);
         await using var entryStream = newEntry.Open();
         await using var writer = new StreamWriter(entryStream);
