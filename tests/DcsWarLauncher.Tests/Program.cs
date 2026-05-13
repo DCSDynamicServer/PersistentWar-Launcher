@@ -45,6 +45,7 @@ var tests = new (string Name, Action Test)[]
     ("Mission result importer maps json lines", MissionResultImporterMapsJsonLines),
     ("Mission result importer maps DCS log events", MissionResultImporterMapsDcsLogEvents),
     ("Mission result importer picks latest result file", MissionResultImporterPicksLatestResultFile),
+    ("Mission result importer skips empty debrief log", MissionResultImporterSkipsEmptyDebriefLog),
     ("Readiness checker reports v0.08 smoke status", ReadinessCheckerReportsV008SmokeStatus),
     ("Readiness checker can prepare smoke state", ReadinessCheckerCanPrepareSmokeState),
     ("Readiness checker requires current generated mission", ReadinessCheckerRequiresCurrentGeneratedMission),
@@ -817,6 +818,32 @@ static void MissionResultImporterPicksLatestResultFile()
 
         Assert.Equal("latest.json", result.FileName);
         Assert.Equal(9, result.BattleReport.BlueMissionSuccess);
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionResultImporterSkipsEmptyDebriefLog()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var resultPath = Path.Combine(root, "Data", "Results");
+        Directory.CreateDirectory(resultPath);
+        var dcsLogPath = Path.Combine(resultPath, "dcs.log");
+        var debriefPath = Path.Combine(resultPath, "debrief.log");
+        File.WriteAllText(dcsLogPath, "2026 INFO    Scripting (Main): event:type=score,initiator_coalition=2,amount=50,");
+        File.WriteAllText(debriefPath, "mission_time\t=\t-1\nevents = \t{}\nresult\t=\t0");
+        File.SetLastWriteTimeUtc(dcsLogPath, DateTime.UtcNow.AddMinutes(-5));
+        File.SetLastWriteTimeUtc(debriefPath, DateTime.UtcNow);
+
+        var importer = new MissionResultImporter(new TestEnvironment(root));
+        var result = importer.ImportLatestAsync().GetAwaiter().GetResult();
+
+        Assert.Equal("dcs.log", result.FileName);
+        Assert.True(result.BattleReport.BlueMissionSuccess > 0, "Expected importer to use DCS log event.");
     }
     finally
     {

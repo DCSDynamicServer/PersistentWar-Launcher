@@ -183,14 +183,59 @@ public sealed class MissionResultImporter(IWebHostEnvironment environment, IConf
             return null;
         }
 
-        return Directory.GetFiles(_resultsPath, "*.*")
+        var candidates = Directory.GetFiles(_resultsPath, "*.*")
             .Where(path =>
                 path.EndsWith(".json", StringComparison.OrdinalIgnoreCase) ||
                 path.EndsWith(".log", StringComparison.OrdinalIgnoreCase))
             .Select(path => new FileInfo(path))
             .OrderByDescending(file => file.LastWriteTimeUtc)
-            .FirstOrDefault();
+            .ToList();
+
+        return candidates.FirstOrDefault(ContainsUsableResult) ??
+            candidates.FirstOrDefault(file => !file.Name.Equals("debrief.log", StringComparison.OrdinalIgnoreCase)) ??
+            candidates.FirstOrDefault();
     }
+
+    private static bool ContainsUsableResult(FileInfo file)
+    {
+        try
+        {
+            var content = File.ReadAllText(file.FullName);
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return false;
+            }
+
+            if (file.Extension.Equals(".json", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (file.Name.Equals("debrief.log", StringComparison.OrdinalIgnoreCase) &&
+                IsEmptyDebriefLog(content))
+            {
+                return false;
+            }
+
+            return content.Contains("event:", StringComparison.OrdinalIgnoreCase) ||
+                content.Contains("\"events\"", StringComparison.OrdinalIgnoreCase) ||
+                content.Contains("events =", StringComparison.OrdinalIgnoreCase) && !IsEmptyDebriefLog(content);
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return false;
+        }
+    }
+
+    private static bool IsEmptyDebriefLog(string content) =>
+        content.Contains("events", StringComparison.OrdinalIgnoreCase) &&
+        content.Contains("{}", StringComparison.OrdinalIgnoreCase) &&
+        !content.Contains("type=", StringComparison.OrdinalIgnoreCase) &&
+        !content.Contains("event:", StringComparison.OrdinalIgnoreCase);
 
     private static BattleReport ReadDirectReport(JsonElement element) =>
         new(
