@@ -43,6 +43,7 @@ var tests = new (string Name, Action Test)[]
     ("Mission result importer maps events to battle report", MissionResultImporterMapsEventsToBattleReport),
     ("Mission result importer maps root event array", MissionResultImporterMapsRootEventArray),
     ("Mission result importer maps json lines", MissionResultImporterMapsJsonLines),
+    ("Mission result importer maps DCS log events", MissionResultImporterMapsDcsLogEvents),
     ("Mission result importer picks latest result file", MissionResultImporterPicksLatestResultFile),
     ("Readiness checker reports v0.08 smoke status", ReadinessCheckerReportsV008SmokeStatus),
     ("Readiness checker can prepare smoke state", ReadinessCheckerCanPrepareSmokeState),
@@ -762,6 +763,34 @@ static void MissionResultImporterMapsJsonLines()
         Assert.Equal(1, report.BlueLosses);
         Assert.Equal(0, report.RedLosses);
         Assert.Equal(0, report.AirSuperiority);
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
+    }
+}
+
+static void MissionResultImporterMapsDcsLogEvents()
+{
+    var root = CreateTempRoot();
+    try
+    {
+        var resultPath = Path.Combine(root, "Data", "Results");
+        Directory.CreateDirectory(resultPath);
+        var filePath = Path.Combine(resultPath, "dcs.log");
+        File.WriteAllText(filePath, string.Join('\n',
+            "2026 INFO    Scripting (Main): event:type=kill,target_coalition=1,initiator_coalition=2,amount=50,",
+            "2026 INFO    Scripting (Main): event:type=crash,initiator_coalition=2,",
+            "2026 INFO    Scripting (Main): event:type=score,initiator_coalition=2,amount=50,",
+            "2026 INFO    Scripting (Main): event:type=eject,initiator_coalition=1,"));
+
+        var importer = new MissionResultImporter(new TestEnvironment(root));
+        var report = importer.ImportAsync(filePath).GetAwaiter().GetResult();
+
+        Assert.Equal(1, report.BlueLosses);
+        Assert.Equal(2, report.RedLosses);
+        Assert.True(report.BlueMissionSuccess > 0, "Expected blue score to count as success.");
+        Assert.True(report.AirSuperiority > 0, "Expected blue score to shift air superiority.");
     }
     finally
     {

@@ -38,7 +38,7 @@ public sealed class MissionResultImporter(IWebHostEnvironment environment, IConf
         if (!trimmed.StartsWith("{", StringComparison.Ordinal) &&
             !trimmed.StartsWith("[", StringComparison.Ordinal))
         {
-            return ImportJsonLines(content);
+            return ImportTextLines(content);
         }
 
         using var document = JsonDocument.Parse(content, new JsonDocumentOptions
@@ -65,27 +65,41 @@ public sealed class MissionResultImporter(IWebHostEnvironment environment, IConf
             direct.AirSuperiority + events.AirSuperiority));
     }
 
-    private static BattleReport ImportJsonLines(string content)
+    private static BattleReport ImportTextLines(string content)
     {
         var events = new List<JsonDocument>();
         try
         {
+            var dcsAccumulator = new BattleReportAccumulator();
             foreach (var line in content.Split('\n'))
             {
                 var trimmed = line.Trim();
-                if (string.IsNullOrWhiteSpace(trimmed) || !trimmed.StartsWith("{", StringComparison.Ordinal))
+                if (string.IsNullOrWhiteSpace(trimmed))
                 {
                     continue;
                 }
 
-                events.Add(JsonDocument.Parse(trimmed, new JsonDocumentOptions
+                if (trimmed.StartsWith("{", StringComparison.Ordinal))
                 {
-                    AllowTrailingCommas = true,
-                    CommentHandling = JsonCommentHandling.Skip
-                }));
+                    events.Add(JsonDocument.Parse(trimmed, new JsonDocumentOptions
+                    {
+                        AllowTrailingCommas = true,
+                        CommentHandling = JsonCommentHandling.Skip
+                    }));
+                    continue;
+                }
+
+                AddDcsLogEvent(dcsAccumulator, trimmed);
             }
 
-            return Clamp(ReadEvents(events.Select(document => document.RootElement)));
+            var jsonReport = ReadEvents(events.Select(document => document.RootElement));
+            var dcsReport = dcsAccumulator.ToReport();
+            return Clamp(new BattleReport(
+                jsonReport.BlueMissionSuccess + dcsReport.BlueMissionSuccess,
+                jsonReport.RedMissionSuccess + dcsReport.RedMissionSuccess,
+                jsonReport.BlueLosses + dcsReport.BlueLosses,
+                jsonReport.RedLosses + dcsReport.RedLosses,
+                jsonReport.AirSuperiority + dcsReport.AirSuperiority));
         }
         finally
         {
@@ -94,6 +108,72 @@ public sealed class MissionResultImporter(IWebHostEnvironment environment, IConf
                 document.Dispose();
             }
         }
+    }
+
+    private static void AddDcsLogEvent(BattleReportAccumulator accumulator, string line)
+    {
+        const string marker = "event:";
+        var markerIndex = line.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (markerIndex < 0)
+        {
+            return;
+        }
+
+        var fields = ParseDcsEventFields(line[(markerIndex + marker.Length)..]);
+        fields.TryGetValue("type", out var type);
+        fields.TryGetValue("initiator_coalition", out var initiatorCoalition);
+        fields.TryGetValue("target_coalition", out var targetCoalition);
+        fields.TryGetValue("amount", out var amount);
+
+        var coalition = NormalizeCoalition(initiatorCoalition ?? "");
+        var target = NormalizeCoalition(targetCoalition ?? "");
+        var value = int.TryParse(amount, out var parsedAmount) ? Math.Abs(parsedAmount) : 0;
+
+        if (ContainsAny(type ?? "", "kill", "dead", "crash", "eject", "pilot dead"))
+        {
+            var lostCoalition = !string.IsNullOrWhiteSpace(target) ? target : coalition;
+            if (lostCoalition == "blue")
+            {
+                accumulator.BlueLosses += 1;
+            }
+            else if (lostCoalition == "red")
+            {
+                accumulator.RedLosses += 1;
+            }
+        }
+
+        if ((type ?? "").Equals("score", StringComparison.OrdinalIgnoreCase))
+        {
+            if (coalition == "blue")
+            {
+                accumulator.BlueMissionSuccess += value >= 50 ? 5 : 1;
+                accumulator.AirSuperiority += value >= 50 ? 2 : 0;
+            }
+            else if (coalition == "red")
+            {
+                accumulator.RedMissionSuccess += value >= 50 ? 5 : 1;
+                accumulator.AirSuperiority -= value >= 50 ? 2 : 0;
+            }
+        }
+    }
+
+    private static Dictionary<string, string> ParseDcsEventFields(string eventText)
+    {
+        var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var rawPart in eventText.Split(',', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var separator = rawPart.IndexOf('=');
+            if (separator <= 0)
+            {
+                continue;
+            }
+
+            var key = rawPart[..separator].Trim();
+            var value = rawPart[(separator + 1)..].Trim();
+            fields[key] = value;
+        }
+
+        return fields;
     }
 
     private FileInfo? GetLatestResultFile()
