@@ -100,6 +100,7 @@ let currentState = null;
 let latestGeneratedMission = null;
 let latestMissionResult = null;
 let currentScheduler = null;
+let lastSchedulerRunUtc = null;
 
 function activateTab(tabName) {
   for (const button of els.tabButtons) {
@@ -130,6 +131,7 @@ async function loadStatus() {
 async function loadScheduler() {
   const response = await fetch("/api/scheduler/status");
   const scheduler = await response.json();
+  const nextSchedulerRunUtc = scheduler.lastRunUtc || null;
   currentScheduler = scheduler;
   els.schedulerEnabled.textContent = scheduler.enabled
     ? scheduler.isProcessing ? "Verarbeitet" : "Aktiv"
@@ -147,6 +149,18 @@ async function loadScheduler() {
     ? new Date(scheduler.lastRunUtc).toLocaleString()
     : "-";
   els.schedulerMessage.textContent = scheduler.lastMessage;
+
+  const automationCompleted = currentState &&
+    nextSchedulerRunUtc &&
+    nextSchedulerRunUtc !== lastSchedulerRunUtc;
+  lastSchedulerRunUtc = nextSchedulerRunUtc;
+
+  if (automationCompleted) {
+    await loadState();
+    await loadGeneratedMission();
+    await loadMissionResultStatus();
+    await loadReadiness();
+  }
 }
 
 async function loadAutomationLog() {
