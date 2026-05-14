@@ -20,11 +20,12 @@ public sealed class TurnSchedulerService(
         {
             state.MarkIdle("Scheduler disabled by configuration.");
             await automationLog.AppendAsync("Scheduler disabled by configuration.", stoppingToken);
-            return;
         }
-
-        logger.LogInformation("Turn scheduler started with {PollSeconds}s poll interval.", schedulerOptions.PollSeconds);
-        await automationLog.AppendAsync($"Scheduler started with {schedulerOptions.PollSeconds}s poll interval.", stoppingToken);
+        else
+        {
+            logger.LogInformation("Turn scheduler started with {PollSeconds}s poll interval.", schedulerOptions.PollSeconds);
+            await automationLog.AppendAsync($"Scheduler started with {schedulerOptions.PollSeconds}s poll interval.", stoppingToken);
+        }
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -50,6 +51,12 @@ public sealed class TurnSchedulerService(
 
     private async Task CheckTurnAsync(SchedulerOptions schedulerOptions, CancellationToken cancellationToken)
     {
+        if (!state.IsEnabled())
+        {
+            state.MarkIdle("Scheduler paused.");
+            return;
+        }
+
         state.MarkChecked();
 
         if (!schedulerOptions.AdvanceWhenTurnExpired)
@@ -116,6 +123,31 @@ public sealed class TurnSchedulerState
                 AutoStartServer = options.AutoStartServer,
                 PollSeconds = options.PollSeconds
             };
+        }
+    }
+
+    public bool IsEnabled()
+    {
+        lock (_gate)
+        {
+            return _status.Enabled;
+        }
+    }
+
+    public SchedulerStatus SetEnabled(bool enabled)
+    {
+        lock (_gate)
+        {
+            _status = _status with
+            {
+                Enabled = enabled,
+                IsProcessing = false,
+                LastMessage = enabled
+                    ? "Scheduler enabled from UI."
+                    : "Scheduler paused from UI."
+            };
+
+            return _status;
         }
     }
 

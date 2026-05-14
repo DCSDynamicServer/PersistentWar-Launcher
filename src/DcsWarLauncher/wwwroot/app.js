@@ -22,6 +22,7 @@ const els = {
   schedulerRun: document.querySelector("#schedulerRun"),
   schedulerMessage: document.querySelector("#schedulerMessage"),
   automationLog: document.querySelector("#automationLog"),
+  schedulerToggleBtn: document.querySelector("#schedulerToggleBtn"),
   runAutomationOnceBtn: document.querySelector("#runAutomationOnceBtn"),
   configReady: document.querySelector("#configReady"),
   configMode: document.querySelector("#configMode"),
@@ -98,6 +99,7 @@ const els = {
 let currentState = null;
 let latestGeneratedMission = null;
 let latestMissionResult = null;
+let currentScheduler = null;
 
 function activateTab(tabName) {
   for (const button of els.tabButtons) {
@@ -128,9 +130,15 @@ async function loadStatus() {
 async function loadScheduler() {
   const response = await fetch("/api/scheduler/status");
   const scheduler = await response.json();
+  currentScheduler = scheduler;
   els.schedulerEnabled.textContent = scheduler.enabled
     ? scheduler.isProcessing ? "Verarbeitet" : "Aktiv"
     : "Aus";
+  els.schedulerEnabled.className = scheduler.enabled ? "ok-text" : "warn-text";
+  els.schedulerToggleBtn.textContent = scheduler.enabled
+    ? "Automation pausieren"
+    : "Automation aktivieren";
+  els.schedulerToggleBtn.classList.toggle("danger", scheduler.enabled);
   els.schedulerPoll.textContent = `${scheduler.pollSeconds}s`;
   els.schedulerChecked.textContent = scheduler.lastCheckedUtc
     ? new Date(scheduler.lastCheckedUtc).toLocaleTimeString()
@@ -738,6 +746,35 @@ async function runAutomationOnce() {
   await loadReadiness();
 }
 
+async function toggleScheduler() {
+  const enable = !currentScheduler?.enabled;
+  const confirmed = window.confirm(enable
+    ? "24/7-Automation aktivieren? Ab jetzt wechselt der Launcher abgelaufene Turns automatisch."
+    : "24/7-Automation pausieren? Der aktuelle DCS-Server laeuft weiter, aber es wird kein Turn automatisch gewechselt.");
+  if (!confirmed) {
+    return;
+  }
+
+  els.schedulerMessage.textContent = enable
+    ? "Automation wird aktiviert..."
+    : "Automation wird pausiert...";
+  const response = await fetch("/api/scheduler/enabled", {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ enabled: enable })
+  });
+
+  const result = await response.json().catch(() => ({ message: "Unauthorized oder ungueltige Antwort." }));
+  if (!response.ok) {
+    els.schedulerMessage.textContent = result.message || result.error || "Automation konnte nicht umgeschaltet werden.";
+    return;
+  }
+
+  currentScheduler = result;
+  await loadScheduler();
+  await loadAutomationLog();
+}
+
 async function saveState() {
   currentState.blueSupply = Number(els.blueSupply.value);
   currentState.redSupply = Number(els.redSupply.value);
@@ -1006,6 +1043,7 @@ async function prepareMission() {
 
 els.startBtn.addEventListener("click", startServer);
 els.stopBtn.addEventListener("click", stopServer);
+els.schedulerToggleBtn.addEventListener("click", toggleScheduler);
 els.runAutomationOnceBtn.addEventListener("click", runAutomationOnce);
 els.useGeneratedMissionBtn.addEventListener("click", useGeneratedMission);
 els.deployGeneratedMissionBtn.addEventListener("click", deployGeneratedMission);

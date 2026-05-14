@@ -21,6 +21,8 @@ public sealed class SchedulerOptions
 
 public sealed record StartMissionRequest(string? MissionPath = null);
 
+public sealed record SchedulerEnabledRequest(bool Enabled);
+
 public sealed record DcsStatus(
     bool IsRunning,
     int? ProcessId,

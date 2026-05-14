@@ -44,6 +44,30 @@ app.MapGet("/api/scheduler/status", (TurnSchedulerState scheduler) => Results.Ok
 
 app.MapGet("/api/scheduler/log", (AutomationLogService log) => Results.Ok(log.GetSnapshot()));
 
+app.MapPost("/api/scheduler/enabled", async (
+    HttpContext context,
+    TurnSchedulerState scheduler,
+    AutomationLogService automationLog) =>
+{
+    if (!IsAuthorized(context, app.Configuration))
+    {
+        return Results.Unauthorized();
+    }
+
+    var request = await context.Request.ReadFromJsonAsync<SchedulerEnabledRequest>();
+    if (request is null)
+    {
+        return Results.BadRequest(new { error = "Invalid scheduler payload." });
+    }
+
+    var status = scheduler.SetEnabled(request.Enabled);
+    await automationLog.AppendAsync(request.Enabled
+        ? "Scheduler enabled from UI."
+        : "Scheduler paused from UI.");
+
+    return Results.Ok(status);
+});
+
 app.MapPost("/api/scheduler/run-once", async (
     HttpContext context,
     IOptions<SchedulerOptions> schedulerOptions,
