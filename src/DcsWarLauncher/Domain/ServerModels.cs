@@ -100,3 +100,22 @@ public sealed record AutomationLogSnapshot(
     bool Exists,
     string Path,
     IReadOnlyCollection<string> Lines);
+
+public sealed record OperationsStatus(
+    int Turn,
+    DateTimeOffset CurrentTurnEndsUtc,
+    int RemainingSeconds,
+    bool TurnExpired,
+    bool SchedulerEnabled,
+    bool SchedulerProcessing,
+    bool SchedulerStale,
+    DateTimeOffset? SchedulerLastCheckedUtc,
+    DateTimeOffset? SchedulerLastRunUtc,
+    string SchedulerMessage,
+    bool DcsRunning,
+    int? DcsProcessId,
+    string DeployedMissionPath,
+    bool DeployedMissionExists,
+    string Health,
+    IReadOnlyCollection<string> Warnings,
+    DateTimeOffset CheckedUtc);

@@ -22,6 +22,13 @@ const els = {
   schedulerRun: document.querySelector("#schedulerRun"),
   schedulerMessage: document.querySelector("#schedulerMessage"),
   automationLog: document.querySelector("#automationLog"),
+  opsHealth: document.querySelector("#opsHealth"),
+  opsTurn: document.querySelector("#opsTurn"),
+  opsNextTurn: document.querySelector("#opsNextTurn"),
+  opsRemaining: document.querySelector("#opsRemaining"),
+  opsDcs: document.querySelector("#opsDcs"),
+  opsMission: document.querySelector("#opsMission"),
+  opsWarnings: document.querySelector("#opsWarnings"),
   schedulerToggleBtn: document.querySelector("#schedulerToggleBtn"),
   runAutomationOnceBtn: document.querySelector("#runAutomationOnceBtn"),
   configReady: document.querySelector("#configReady"),
@@ -119,6 +126,22 @@ function authHeaders() {
   };
 }
 
+function formatDuration(totalSeconds) {
+  const safeSeconds = Math.max(0, Number(totalSeconds) || 0);
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = Math.floor(safeSeconds % 60);
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+
+  return `${seconds}s`;
+}
+
 async function loadStatus() {
   const response = await fetch("/api/server/status");
   const status = await response.json();
@@ -160,6 +183,36 @@ async function loadScheduler() {
     await loadGeneratedMission();
     await loadMissionResultStatus();
     await loadReadiness();
+  }
+}
+
+async function loadOperationsStatus() {
+  const response = await fetch("/api/operations/status");
+  const ops = await response.json().catch(() => null);
+  if (!response.ok || !ops) {
+    els.opsHealth.textContent = "Fehler";
+    els.opsHealth.className = "bad-text";
+    return;
+  }
+
+  els.opsHealth.textContent = ops.health;
+  els.opsHealth.className = ops.health === "OK" ? "ok-text" : "warn-text";
+  els.opsTurn.textContent = `Turn ${ops.turn}`;
+  els.opsNextTurn.textContent = new Date(ops.currentTurnEndsUtc).toLocaleString();
+  els.opsRemaining.textContent = formatDuration(ops.remainingSeconds);
+  els.opsRemaining.className = ops.turnExpired ? "warn-text" : "ok-text";
+  els.opsDcs.textContent = ops.dcsRunning
+    ? ops.dcsProcessId ? `Laeuft: ${ops.dcsProcessId}` : "Laeuft"
+    : "Aus";
+  els.opsDcs.className = ops.dcsRunning ? "ok-text" : "warn-text";
+  els.opsMission.textContent = ops.deployedMissionExists ? "OK" : "Fehlt";
+  els.opsMission.className = ops.deployedMissionExists ? "ok-text" : "bad-text";
+
+  els.opsWarnings.innerHTML = "";
+  for (const warning of ops.warnings || []) {
+    const item = document.createElement("p");
+    item.textContent = warning;
+    els.opsWarnings.appendChild(item);
   }
 }
 
@@ -1083,6 +1136,7 @@ els.refreshBtn.addEventListener("click", async () => {
   await loadGeneratedMission();
   await loadMissionResultStatus();
   await loadReadiness();
+  await loadOperationsStatus();
   await loadState();
   await loadTemplateInspection();
 });
@@ -1091,6 +1145,7 @@ loadStatus();
 loadScheduler();
 loadAutomationLog();
 loadConfigCheck();
+loadOperationsStatus();
 loadGeneratedMission();
 loadMissionResultStatus();
 loadReadiness();
@@ -1098,6 +1153,7 @@ loadState();
 loadTemplateInspection();
 setInterval(loadStatus, 5000);
 setInterval(loadScheduler, 10000);
+setInterval(loadOperationsStatus, 10000);
 setInterval(loadAutomationLog, 30000);
 setInterval(loadConfigCheck, 30000);
 setInterval(updateRemaining, 30000);

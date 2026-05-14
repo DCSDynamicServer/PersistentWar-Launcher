@@ -40,6 +40,70 @@ app.MapGet("/api/server/status", (DcsProcessService dcs) => Results.Ok(dcs.GetSt
 
 app.MapGet("/api/server/config-check", (DcsProcessService dcs) => Results.Ok(dcs.GetConfigCheck()));
 
+app.MapGet("/api/operations/status", async (
+    StateStore store,
+    DcsProcessService dcs,
+    TurnSchedulerState scheduler) =>
+{
+    var now = DateTimeOffset.UtcNow;
+    var state = await store.LoadAsync();
+    var dcsStatus = dcs.GetStatus();
+    var config = dcs.GetConfigCheck();
+    var schedulerStatus = scheduler.GetSnapshot();
+    var remaining = state.CurrentTurnEndsUtc - now;
+    var staleAfterSeconds = Math.Max(90, schedulerStatus.PollSeconds * 3);
+    var schedulerStale = schedulerStatus.Enabled &&
+        (!schedulerStatus.LastCheckedUtc.HasValue ||
+            now - schedulerStatus.LastCheckedUtc.Value > TimeSpan.FromSeconds(staleAfterSeconds));
+
+    var warnings = new List<string>();
+    if (!schedulerStatus.Enabled)
+    {
+        warnings.Add("Automation is paused.");
+    }
+
+    if (schedulerStale)
+    {
+        warnings.Add("Scheduler check is stale.");
+    }
+
+    if (!dcsStatus.IsRunning)
+    {
+        warnings.Add("DCS server is not running.");
+    }
+
+    if (!config.ServerSettingsMissionExists)
+    {
+        warnings.Add("serverSettings.lua does not point to an existing mission.");
+    }
+
+    if (state.CurrentTurnEndsUtc <= now && schedulerStatus.Enabled)
+    {
+        warnings.Add("Current turn is expired; automation should advance it shortly.");
+    }
+
+    var health = warnings.Count == 0 ? "OK" : schedulerStale || !config.ServerSettingsMissionExists ? "Warn" : "Check";
+
+    return Results.Ok(new OperationsStatus(
+        state.Turn,
+        state.CurrentTurnEndsUtc,
+        Math.Max(0, (int)remaining.TotalSeconds),
+        state.CurrentTurnEndsUtc <= now,
+        schedulerStatus.Enabled,
+        schedulerStatus.IsProcessing,
+        schedulerStale,
+        schedulerStatus.LastCheckedUtc,
+        schedulerStatus.LastRunUtc,
+        schedulerStatus.LastMessage,
+        dcsStatus.IsRunning,
+        dcsStatus.ProcessId,
+        config.ServerSettingsMissionPath ?? config.DeploymentTargetPath,
+        config.ServerSettingsMissionExists,
+        health,
+        warnings,
+        now));
+});
+
 app.MapGet("/api/scheduler/status", (TurnSchedulerState scheduler) => Results.Ok(scheduler.GetSnapshot()));
 
 app.MapGet("/api/scheduler/log", (AutomationLogService log) => Results.Ok(log.GetSnapshot()));
